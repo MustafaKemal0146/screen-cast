@@ -1,0 +1,10 @@
+[package]
+name = "screencast-encode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+screencast-core = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }

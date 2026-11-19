@@ -1,0 +1,46 @@
+/* Turkish translation catalog for the screencast web player. */
+(function (global) {
+  "use strict";
+
+  global.SCREENCAST_I18N_TR = {
+    pageTitle: "screencast — Canlı Yayın",
+    stageAria: "screencast canlı yayın oynatıcısı",
+    controlsAria: "Oynatıcı kontrolleri",
+    menuAria: "Yayın seçenekleri",
+    liveBadge: "CANLI",
+    connectingBadge: "BAĞLANILIYOR",
+    connectingTitle: "Bağlanılıyor...",
+    connectingDesc: "Masaüstü akışı hazırlanıyor.",
+    reconnect: "Yeniden bağlan",
+    retry: "Tekrar dene",
+    resume: "Devam et",
+    playTitle: "Oynat / Duraklat (Boşluk)",
+    muteTitle: "Sesi aç/kapat (M)",
+    fullscreenTitle: "Tam ekran (F)",
+    controlTitle: "Kumanda modu (C)",
+    controlLabel: "🖱 Kumanda",
+    moreTitle: "Menü",
+    tvModeLabel: "TV Modu (büyük arayüz)",
+    on: "Açık",
+    off: "Kapalı",
+    languageLabel: "Dil",
+    activeQualityLabel: "Aktif Kalite",
+    shortcutsLabel: "Kısayollar",
+    shortcutsHint: "F · M · C · Boşluk",
+    hlsFallbackToast: "HLS yedek oynatıcı etkin",
+    mseUnsupportedTitle: "Tarayıcı MSE desteklemiyor",
+    mseUnsupportedDesc: "Bu tarayıcı H.264 fMP4 akışını oynatamıyor.",
+    initFailedTitle: "Oynatıcı başlatılamadı",
+    portalDeniedTitle: "Ekran paylaşım izni verilmedi",
+    streamEndedTitle: "Yayın kesildi",
+    streamClosedDesc: "Sunucu bağlantısı kapandı.",
+    unauthorizedTitle: "Yetkisiz erişim",
+    unauthorizedDesc: "URL'deki token parametresini kontrol edin.",
+    bufferingTitle: "Ağ yavaş",
+    bufferingDesc: "Akış tamponlanıyor...",
+    pausedTitle: "Duraklatıldı",
+    pausedDesc: "Devam etmek için Boşluk tuşuna veya ▶ düğmesine basın.",
+    controlEnabledToast: "Kumanda modu açık (C ile kapat)",
+    controlDisabledToast: "Kumanda modu kapalı"
+  };
+})(window);

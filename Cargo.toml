@@ -1,14 +1,14 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/ekran-core",
-  "crates/ekran-capture",
-  "crates/ekran-encode",
-  "crates/ekran-audio",
-  "crates/ekran-transport",
-  "crates/ekran-sinks",
-  "crates/ekran-ui",
-  "crates/ekran-cli",
+  "crates/screencast-core",
+  "crates/screencast-capture",
+  "crates/screencast-encode",
+  "crates/screencast-audio",
+  "crates/screencast-transport",
+  "crates/screencast-sinks",
+  "crates/screencast-ui",
+  "crates/screencast-cli",
 ]
 
 [workspace.package]
@@ -17,13 +17,13 @@ edition = "2021"
 license = "MIT"
 
 [workspace.dependencies]
-ekran-core = { path = "crates/ekran-core" }
-ekran-capture = { path = "crates/ekran-capture" }
-ekran-encode = { path = "crates/ekran-encode" }
-ekran-audio = { path = "crates/ekran-audio" }
-ekran-transport = { path = "crates/ekran-transport" }
-ekran-sinks = { path = "crates/ekran-sinks" }
-ekran-ui = { path = "crates/ekran-ui" }
+screencast-core = { path = "crates/screencast-core" }
+screencast-capture = { path = "crates/screencast-capture" }
+screencast-encode = { path = "crates/screencast-encode" }
+screencast-audio = { path = "crates/screencast-audio" }
+screencast-transport = { path = "crates/screencast-transport" }
+screencast-sinks = { path = "crates/screencast-sinks" }
+screencast-ui = { path = "crates/screencast-ui" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"

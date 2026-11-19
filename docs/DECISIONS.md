@@ -1,63 +1,81 @@
-# ekran — Karar Günlüğü (DECISIONS)
+# screencast — Decision Log (DECISIONS)
 
-> Kilitli kararlar `docs/PLAN.md` §1'de durur. Burada **değiştirilmiş** kararlar ve gerekçeleri
-> kronolojik olarak tutulur. Yeni bir karar değişikliği: önce buraya "Öneri" olarak eklenir,
-> gerekçe + etki + geri dönüş planı yazılır, sonra PLAN.md güncellenir.
+> Locked architectural decisions live in `docs/PLAN.md` §1. This file records **amended** or
+> newly adopted decisions chronologically with rationale, impact, and rollback strategy.
 
-## D-001 — Kalite merdiveninde `540p` değişkeni neden var?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Kullanıcı 540p'yi ayrı bir seçenek olarak istedi. 960×540, 4:3 içerik ve eski TV'lerde
-1080p'den verimli; 480p ile 720p arasında doğal bir ara basamak. Merdiven korunur.
+## D-001 — Why keep `540p` in the quality ladder?
+**Date:** 2026-11-13 · **Status:** accepted
+The `960x540` tier provides an efficient middle step between `480p` and `720p` for 4:3 content
+and older TV hardware decoders where `1080p` causes unnecessary decode load.
 
-## D-002 — Gecikme ölçümü istemcide mi sunucuda mı?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-**İstemcide.** PTS ile `performance.now()` eşleşmesi gerçek uçtan uca gecikmeyi verir
-(kodlama, taşıma, decode dahil). Sunucu tarafı ölçümü yalnızca kodlama/taşıma kısmını görür.
-Rozet oynatıcıda gösterilir; `ekran doctor --bench` ise 100 örnek toplar (AC-1).
+## D-002 — Measure latency on client or server?
+**Date:** 2026-11-13 · **Status:** accepted
+**On the client.** Correlating PTS and live-edge lag captures true end-to-end latency (encoding,
+transport, and decode). Server-side measurements see capture/transport only. The player displays
+this live latency badge; `screencast doctor --bench` measures 100 transport samples (AC-1).
 
-## D-003 — Cast/DLNA'da kumanda neden yok?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Cast ve DLNA protokolleri fare/klavye taşımaz. Bu bir eksiklik değil, protokol sınırıdır.
-Kumanda modu yalnız tarayıcı (MSE) yolunda aktiftir; Cast/DLNA'da TV'nin kendi kumandası
-zaten kumandadır. Bu bilgi cihaz listesinde "kumanda: yok" olarak gösterilir.
+## D-003 — Why no remote control on Cast/DLNA?
+**Date:** 2026-11-13 · **Status:** accepted
+Cast and DLNA receiver protocols do not carry mouse/keyboard injection channels. Remote input is
+active on the browser (MSE/WebSocket) path; on Cast/DLNA, the TV remote already controls TV playback.
 
-## D-004 — Go prototipi neden Rust'a taşınıyor?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Kullanıcı dili Rust olarak seçti. Go prototipi `legacy/prototype-go/` altında **referans** olarak
-korunur: WebSocket framing, fMP4 kutu ayrıştırma ve ffmpeg argüman üretimi mantığı buradan
-alınır. Bakımı yoktur, CI'ya girmez.
+## D-004 — Why rewrite the Go prototype into Rust?
+**Date:** 2026-11-13 · **Status:** accepted
+Rust eliminates runtime GC jitter and integrates cleanly with async Tokio I/O and static packaging.
+The original Go prototype remains preserved untouched under `legacy/prototype-go/` as historical
+reference only; CI builds Rust crates exclusively.
 
-## D-005 — TV tarayıcısı neden "yedek" yol?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Kullanıcının kuralı: "TV'ye uygulama yüklemeyeceğim". TV'nin yerleşik tarayıcısı da bir
-uygulamadır ama TV'nin kendi özelliğidir; yine de hiçbir TV'de olduğu garanti değildir.
-Birincil yol daima yerleşik protokol (Cast/DLNA), tarayıcı en son çare.
+## D-005 — Why is the TV browser a fallback path?
+**Date:** 2026-11-13 · **Status:** accepted
+Primary target is zero-install native TV playback (Cast / Miracast / DLNA). The built-in TV
+browser serves as a universal fallback when native protocols are missing or reject live streams.
 
-## D-006 — Ses düzeltmesi neden "sink değişimi" olarak adlandırıldı?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Kullanıcının belirtisi "sekme değiştirince ses gidiyor" idi; ölçüm, kök nedenin **çıkış cihazı
-(sink) değişince PulseAudio monitor kaynağının değişmesi** olduğunu gösterdi. Çözüm
-`pactl subscribe` tabanlı `SourceWatcher`'dır (PLAN T-M2-02). `module-null-sink` + remap
-alternatifi yalnız `--audio-loopback` bayrağıyla, varsayılan kapalı (PLAN §10 satır 6).
+## D-006 — Why call the audio fix "sink switching"?
+**Date:** 2026-11-13 · **Status:** accepted
+Tab/output switches kill PulseAudio `.monitor` capture because the default sink's monitor name
+changes. The `pactl subscribe` `SourceWatcher` detects sink changes and rebinds capture (`T-M2-02`).
+A `module-null-sink` remap stays opt-in under `--audio-loopback`.
 
-## D-007 — Ajan sayısı neden 4 olarak önerildi?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-4 ajan (core/transport, capture/encode, sinks, ui) dengeyi korur: her birinin bağlamı rahat,
-dosya sahipliği çakışmaz, entegrasyon tek noktada (CLI). 8 ajan bağlam/token maliyetini ikiye
-katlar ve dalga 1'de benzer dosyalara yazma riskini artırır. `docs/EXECUTION.md` §2'de
-1/2-3/4-6/7-8 ajan senaryoları tanımlıdır.
+## D-007 — Why recommend 4 parallel agents?
+**Date:** 2026-11-13 · **Status:** accepted
+Four domain streams (`core/transport`, `capture/encode`, `sinks`, `ui`) prevent file ownership
+overlap while preserving clean context windows.
 
-## D-008 — `CastMessage` protobuf alanları 1 ve 5 neden `required` (proto2)?
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-`docs/PROTOCOLS.md` §2.3 örnek şeması `proto3` sözdizimiyle yazılmıştı; ancak gerçek Chromecast
-cihazları (port 8009) resmi `cast_channel.proto` (proto2) tel biçimini bekler: `protocol_version = 0`
-(`CASTV2_1_0`) ve `payload_type = 0` (`STRING`) değerleri `0` olsa bile telde açıkça kodlanmalıdır.
-`ekran-sinks/src/cast.rs` içinde `prost` `required` etiketleri kullanıldı ve testlerle doğrulandı.
+## D-008 — Why are `CastMessage` fields 1 and 5 `required` (proto2)?
+**Date:** 2026-11-13 · **Status:** accepted
+Physical Chromecast receivers (port 8009) require official `cast_channel.proto` proto2 wire syntax:
+enum value `0` (`CASTV2_1_0`, `STRING`) must still be explicitly serialized on the wire. Verified via
+mock TLS/protobuf handshake tests in `screencast-sinks/src/cast/`.
 
-## D-009 — `ekran-transport` ve `ekran-sinks` çapraz bağımlılıklarının kaldırılması
-**Tarih:** 2026-11-13 · **Durum:** kabul edildi
-Başlangıç iskeletindeki `Cargo.toml` dosyalarında `ekran-sinks → ekran-transport` ve
-`ekran-transport → ekran-encode` bağımlılıkları bulunuyordu. `AGENTS.md` §1 tek yönlü bağımlılık
-kuralı gereği bu çapraz bağımlılıklar kaldırıldı; tüm kütüphane crate'leri yalnızca `ekran-core`'a
-bağlıdır, birleştirme `ekran-cli` içindedir.
+## D-009 — Remove cross-dependencies between sibling crates
+**Date:** 2026-11-13 · **Status:** accepted
+Removed `sinks -> transport` and `transport -> encode` dependencies so all 6 middle library crates
+depend strictly on `screencast-core` alone, and `screencast-cli` wires them together.
 
+## D-010 — Unfreeze `screencast-core` for English-first rename and zero-dependency i18n
+**Date:** 2026-11-19 · **Status:** accepted
+- **Context:** Originally `ekran-core` was frozen (`T-M0-07`) with hardcoded Turkish strings. To
+  make the project globally accessible and autonomous-agent friendly, everything is renamed from
+  `ekran` to `screencast`, all internal identifiers/docs/defaults are converted to English, and an
+  English-first (`Language::En` default + `Language::Tr` catalog) zero-dependency i18n module is
+  introduced inside `screencast-core::i18n`.
+- **Contract impact:** Trait signatures (`Sink`, `CaptureSource`, `Control`, `Discovery`) remain
+  unchanged in shape; `Error` keeps `Display` + `.hint()` while adding `.message(lang)` and
+  `.hint_for(lang)`. `Config` gains `language: Language` (`language = "en"` default, backward
+  compatible with existing `schema_version = 1` files). Resolution precedence: `--lang` >
+  `SCREENCAST_LANG` > `config.toml` explicit `language` > `LANG` > `en`.
+- **Rollback plan:** All user-facing strings route through `TextKey`; reverting default language is
+  a single-line default change in `Language::default()`.
+
+## D-011 — Hard 350-line non-test file cap and automated AI-hygiene CI gate
+**Date:** 2026-11-19 · **Status:** accepted
+- **Context:** Large monolithic modules (e.g. 2800-line `wireless.rs`, 980-line `share.rs`,
+  740-line `screencast_gui.py`) exceed optimal context budgets for autonomous parallel coding agents
+  and create merge contention.
+- **Decision:** Split every Rust module and web/GUI asset so that **no Rust file exceeds 350
+  non-test lines** (excluding `#[cfg(test)]`) and **no JS/CSS/HTML/Python asset exceeds 350 lines**.
+  Enforce this cap, zero non-catalog Turkish characters / `_tr` suffixes, and strict one-way crate
+  dependency direction automatically via `crates/screencast-cli/tests/ai_hygiene.rs` in `cargo test`.
+- **Impact:** Zero external dependencies added; every workspace crate runs smaller, focused files.
+- **Rollback plan:** Individual submodules can be re-exported seamlessly via `mod.rs` without
+  breaking downstream crate APIs.

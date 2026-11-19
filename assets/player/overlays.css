@@ -1,0 +1,141 @@
+/* screencast web player secondary menu, state overlays, toast, and TV mode */
+
+#more-menu {
+  position: fixed;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 310px;
+  padding: var(--s-4);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--hairline);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  display: none;
+  flex-direction: column;
+  gap: var(--s-3);
+  z-index: 35;
+  transition: opacity 200ms var(--ease-panel);
+}
+
+#more-menu.open {
+  display: flex;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  font-size: clamp(15px, 1vw, 18px);
+}
+
+.menu-select {
+  min-height: 48px;
+  padding: 0 var(--s-3);
+  border-radius: var(--radius-s);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border: 1px solid var(--hairline);
+  font-size: inherit;
+}
+
+/* State overlays (docs/DESIGN.md) */
+#state-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  background: rgba(0, 0, 0, 0.68);
+  z-index: 25;
+  text-align: center;
+  padding: var(--s-6);
+}
+
+#state-overlay.visible {
+  display: flex;
+}
+
+#state-overlay.solid {
+  background: var(--canvas);
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--hairline);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.state-title {
+  font-size: clamp(24px, 2.2vw, 34px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.state-desc {
+  font-size: clamp(16px, 1.3vw, 22px);
+  color: var(--text-secondary);
+  max-width: 620px;
+}
+
+.primary-action {
+  min-width: 180px;
+  min-height: 48px;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--radius-l);
+  border: none;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: var(--font-stack);
+  font-size: clamp(16px, 1.2vw, 20px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent);
+}
+
+/* 5. Toast (top-right, 3-4 sec) */
+#toast {
+  position: fixed;
+  top: 76px;
+  right: var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius-m);
+  font-size: clamp(15px, 1.05vw, 18px);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 160ms ease-in-out, transform 160ms ease-in-out;
+  z-index: 40;
+  pointer-events: none;
+}
+
+#toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* TV Mode: 10-feet scaled text & controls */
+body.tv-mode {
+  font-size: clamp(20px, 2vw, 28px);
+}
+
+body.tv-mode .ctrl-btn {
+  min-width: 56px;
+  min-height: 56px;
+  padding: var(--s-3) var(--s-4);
+}

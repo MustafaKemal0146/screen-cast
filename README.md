@@ -1,67 +1,69 @@
-# ekran
+# screencast
 
-Linux masaüstünü ev ağındaki TV'ye **canlı ve ölçülebilir düşük gecikmeyle** yansıt.
-TV'ye **hiçbir uygulama kurulmaz**: TV'nin desteklediği yerleşik protokol (Google Cast, DLNA,
-Miracast, AirPlay) veya TV'nin tarayıcısı otomatik seçilir. TV ayrıca kumanda cihazına dönüşür.
+Cast your Linux desktop to a TV on your local network with **live, measurable low latency**.
+**Zero TV apps required**: automatically selects the TV's native protocol (Google Cast, DLNA,
+Miracast, AirPlay) or built-in browser. Also turns the TV browser into a remote control.
 
-Türkçe · Rust · tek binary · bulut yok · hesap yok · NVENC donanım kodlama
+English-first (`en` + `tr` i18n) · Rust · single binary · no cloud · no accounts · NVENC hardware encoding
 
 ---
 
-## Dokümanlar (okuma sırasıyla)
+## Documentation (in reading order)
 
-| # | Dosya | İçerik |
+| # | File | Contents |
 |---|---|---|
-| 1 | [`docs/PLAN.md`](docs/PLAN.md) | **Normatif plan**: 5 dalga, ~60 görev (`T-Mx-yy`), kabul kriterleri (AC-1..AC-10), kalite tablosu, riskler |
-| 2 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 8 crate, Rust trait imzaları, HTTP API sözleşmesi, dosya düzeni, hata modeli |
-| 3 | [`docs/PROTOCOLS.md`](docs/PROTOCOLS.md) | Cast (protobuf şemasıyla), DLNA (XML şablonlarıyla), Miracast, AirPlay, MSE — tel düzeyinde |
-| 4 | [`docs/DESIGN.md`](docs/DESIGN.md) | Apple tarzı arayüz: renk/ölçü/hareket token'ları, oynatıcı anatomisi, durumlar, TUI düzeni |
-| 5 | [`docs/EXECUTION.md`](docs/EXECUTION.md) | **Paralel ajan çalıştırma**: roller, dalga planı, kopyala-yapıştır ajan talimatları, doğrulama kapıları |
-| 6 | [`docs/TEST-PLAN.md`](docs/TEST-PLAN.md) | Otomatik test listesi + gerçek TV doğrulama checklist'i (A–H) |
-| — | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Alınmış kararlar ve gerekçeleri |
-| — | [`AGENTS.md`](AGENTS.md) | **Bu depoda çalışan her AI/person için kurallar** (okuma sırası, tuzaklar, DoD) |
+| 1 | [`docs/PLAN.md`](docs/PLAN.md) | **Normative plan**: 5+ waves, ~60 tasks (`T-Mx-yy`), acceptance criteria (AC-1..AC-10), quality ladder, risks |
+| 2 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 8 crates, Rust trait contracts, HTTP API spec, modular `<= 350`-line layout, error model |
+| 3 | [`docs/PROTOCOLS.md`](docs/PROTOCOLS.md) | Cast (protobuf schema), DLNA (XML templates), Miracast (WFD + MS-MICE + WDI/MCC), AirPlay, MSE |
+| 4 | [`docs/DESIGN.md`](docs/DESIGN.md) | Apple-inspired UI: color/spacing/motion tokens, player anatomy, states, TUI & GTK3 layout |
+| 5 | [`docs/EXECUTION.md`](docs/EXECUTION.md) | **Parallel multi-agent execution**: roles, waves, copy-paste agent prompts, verification gates |
+| 6 | [`docs/TEST-PLAN.md`](docs/TEST-PLAN.md) | Automated unit/integration/hygiene tests + physical TV verification checklist (A-H) |
+| — | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Recorded architectural decisions and rationale |
+| — | [`AGENTS.md`](AGENTS.md) | **Rules for every AI/human contributor** (reading order, pitfalls, line limits, DoD) |
 
-> "ekranı yap" diyebilirsin: `AGENTS.md` + `docs/` yeterli. 4 ajanla paralel yürütme planı
-> `docs/EXECUTION.md` §3'te hazır.
+## Status
 
-## Durum
-
-| Dalga | İçerik | Durum |
+| Wave | Scope | Status |
 |---|---|---|
-| 0 | Rust workspace (8 crate), `ekran-core` sözleşmeleri, `ekran doctor` | ✅ tamamlandı |
-| 1 | Yakala → NVENC → fMP4 → MSE oynatıcı + ses watcher | ✅ tamamlandı |
-| 2 | Akıllı kalite, keşif, Cast sink, Wayland portal | ✅ tamamlandı |
-| 3 | Kumanda, DLNA, TUI cihaz listesi | ✅ tamamlandı |
-| 4 | Entegrasyon, ölçüm, paketleme (`.deb` / Flatpak / CI) | ✅ tamamlandı (gerçek TV testi beklemede) |
-| 5 | Derin yol: `--record` (`T-M10-05` ✅); x11rb/Miracast/AirPlay | 🟡 opsiyonel |
+| 0 | Rust workspace (8 crates), `screencast-core` contracts, `screencast doctor` | Done |
+| 1 | Capture -> NVENC -> fMP4 -> MSE player + audio watcher | Done |
+| 2 | Adaptive quality, discovery, Cast sink, Wayland portal | Done |
+| 3 | Remote control, DLNA, TUI device list | Done |
+| 4 | Integration, benchmarks, packaging (`.deb` / Flatpak / CI) | Done (live TV verification pending) |
+| 5 | Deep path: `--record`, Miracast (WFD RTSP + MS-MICE + WDI/MCC + DFS P2P-Client), English-first i18n, AI-driven `<= 350`-line modularization | Done |
 
-## Hızlı başlangıç (kurulum sonrası)
+## Quick start
 
 ```bash
-ekran doctor                      # ortam kontrolü (oturum, ekran, ağ, araçlar, ses, codec)
-ekran discover                    # ağdaki TV'leri listele (Cast/DLNA/Miracast)
-ekran share --to <cihaz-id>       # seç ve yayınla (TV'de uygulama gerekmez)
-ekran share --quality 1080p       # 480p|540p|720p|1080p|1440p|auto
-ekran share --audio               # sistem sesiyle birlikte
-ekran share --record yayin.mp4    # yayınlarken aynı anda kaydet
-ekran config init                 # ~/.config/ekran/config.toml oluştur
-ekran selftest                    # uçtan uca kendi kendine test
+screencast doctor                      # environment check (session, displays, network, WDI/MCC, DFS, MS-MICE, codec)
+screencast doctor --wireless           # detailed Wi-Fi MCC, DFS channel, and P2P negotiation plan
+screencast discover                    # list TVs on network (Cast/MS-MICE/DLNA/Miracast)
+screencast discover --p2p              # include active Wi-Fi Direct P2P radio scan
+screencast share --to <device-id>      # cast to selected target (no TV app needed)
+screencast share --quality 1080p       # 480p|540p|720p|1080p|1440p|auto
+screencast share --audio               # include system audio
+screencast share --record cast.mp4     # record while casting
+screencast --lang tr doctor            # switch display language (en | tr; or SCREENCAST_LANG=tr)
+screencast config init                 # create ~/.config/screencast/config.toml
+screencast selftest                    # end-to-end loopback self-test
 ```
 
-## Mimari özet
+## Architecture summary
 
 ```
 X11 (x11grab) ─┐
-Wayland (portal)─┤   ┌── ekran (tek süreç, tek binary) ──┐
-Test (lavfi) ───┘   │ capture → encode(NVENC) → stream     │
-                     │   ├─ WebSocket + MSE  → tarayıcı (kumanda ✅, ~250-400 ms)
-                     │   └─ HLS              → Cast/DLNA oynatıcısı (TV'de uygulama yok)
-                     │ control: xdotool (X11) / RemoteDesktop portalı (Wayland)
-                     │ audio: PulseAudio monitor + sink değişim takipçisi
-                     │ ui: Apple tarzı web oynatıcı (TV) + ratatui TUI (Linux)
-                     └──────────────────────────────────────────┘
+Wayland (portal)┤  ┌── screencast (single process, single binary) ─┐
+Test (lavfi) ───┘  │ capture -> encode(NVENC) -> stream            │
+                   │   ├─ WebSocket + MSE  -> browser (remote ✅)  │
+                   │   ├─ HLS              -> Cast/DLNA player     │
+                   │   └─ WFD RTSP + RTP   -> Miracast (MICE/P2P)  │
+                   │ control: xdotool (X11) / RemoteDesktop portal │
+                   │ audio: PulseAudio monitor + SourceWatcher     │
+                   │ ui: Web player + ratatui TUI + GTK3 GUI       │
+                   │ i18n: English default + Turkish (en | tr)     │
+                   └───────────────────────────────────────────────┘
 ```
 
-## Lisans
+## License
 
-MIT (bkz. `LICENSE`).
+MIT (see `LICENSE`).

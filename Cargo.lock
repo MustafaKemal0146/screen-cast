@@ -455,109 +455,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
-name = "ekran-audio"
-version = "0.1.0"
-dependencies = [
- "ekran-core",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ekran-capture"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "ekran-core",
- "libc",
- "serde",
- "tokio",
- "tracing",
- "zbus",
-]
-
-[[package]]
-name = "ekran-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "ekran-audio",
- "ekran-capture",
- "ekran-core",
- "ekran-encode",
- "ekran-sinks",
- "ekran-transport",
- "ekran-ui",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "ekran-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "ekran-encode"
-version = "0.1.0"
-dependencies = [
- "ekran-core",
- "serde",
- "tracing",
-]
-
-[[package]]
-name = "ekran-sinks"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "ekran-core",
- "prost",
- "rcgen",
- "rustls",
- "serde",
- "serde_json",
- "tokio",
- "tokio-rustls",
- "tracing",
-]
-
-[[package]]
-name = "ekran-transport"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64",
- "ekran-core",
- "serde",
- "serde_json",
- "sha1",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "ekran-ui"
-version = "0.1.0"
-dependencies = [
- "crossterm",
- "ekran-core",
- "ratatui",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1285,6 +1182,110 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "screencast-audio"
+version = "0.1.0"
+dependencies = [
+ "screencast-core",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "screencast-capture"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "libc",
+ "screencast-core",
+ "serde",
+ "tokio",
+ "tracing",
+ "zbus",
+]
+
+[[package]]
+name = "screencast-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "screencast-audio",
+ "screencast-capture",
+ "screencast-core",
+ "screencast-encode",
+ "screencast-sinks",
+ "screencast-transport",
+ "screencast-ui",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "screencast-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "toml",
+]
+
+[[package]]
+name = "screencast-encode"
+version = "0.1.0"
+dependencies = [
+ "screencast-core",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "screencast-sinks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "prost",
+ "rcgen",
+ "rustls",
+ "screencast-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "zbus",
+]
+
+[[package]]
+name = "screencast-transport"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64",
+ "screencast-core",
+ "serde",
+ "serde_json",
+ "sha1",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "screencast-ui"
+version = "0.1.0"
+dependencies = [
+ "crossterm",
+ "ratatui",
+ "screencast-core",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "serde"

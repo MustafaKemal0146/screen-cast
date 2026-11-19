@@ -1,82 +1,70 @@
-# AGENTS.md — ekran (bu depoda çalışan herkes/AI için)
+# AGENTS.md — screencast (mandatory rules for every AI/human contributor)
 
-Bu depoda çalışan **herhangi bir yapay zekâ veya geliştirici** için zorunlu kurallar.
-"ekranı yap" dendiğinde bu dosya + `docs/` altındaki 6 doküman yeterlidir.
+Mandatory rules for **any AI agent or developer** working in this repository.
+This file plus the 6 documents under `docs/` contain everything required to build and maintain `screencast`.
 
-## 0. Okuma sırası (kod yazmadan önce)
+## 0. Reading order (before writing code)
 
-| Sıra | Dosya | Ne için |
+| Order | File | Purpose |
 |---|---|---|
-| 1 | `docs/PLAN.md` | **Normatif**: görevler (`T-Mx-yy`), kabul kriterleri (AC), kapsam, kararlar |
-| 2 | `docs/ARCHITECTURE.md` | crate yapısı, trait imzaları, HTTP API, dosya düzeni, hata modeli |
-| 3 | `docs/PROTOCOLS.md` | sink protokolleri (Cast/DLNA/Miracast/AirPlay/MSE) tel düzeyinde |
-| 4 | `docs/DESIGN.md` | arayüz tasarım sistemi (token'lar, durumlar, hareket, TUI) |
-| 5 | `docs/EXECUTION.md` | **paralel ajan çalıştırma** (roller, dalgalar, kopyala-yapıştır talimatlar) |
-| 6 | `docs/TEST-PLAN.md` | otomatik testler + gerçek cihaz doğrulama checklist'i |
-| — | `docs/DECISIONS.md` | alınmış kararlar ve gerekçeler (değiştirmek isteyenler buraya yazar) |
+| 1 | `docs/PLAN.md` | **Normative**: tasks (`T-Mx-yy`), acceptance criteria (AC), scope, locked decisions |
+| 2 | `docs/ARCHITECTURE.md` | Crate structure, trait signatures, HTTP API, modular file layout, error model |
+| 3 | `docs/PROTOCOLS.md` | Sink protocols (Cast/DLNA/Miracast/AirPlay/MSE) at the wire level |
+| 4 | `docs/DESIGN.md` | UI design system (tokens, states, motion, TUI, GTK3 GUI) |
+| 5 | `docs/EXECUTION.md` | **Parallel agent execution** (roles, waves, copy-paste prompts) |
+| 6 | `docs/TEST-PLAN.md` | Automated tests + real device verification checklist |
+| — | `docs/DECISIONS.md` | Recorded decisions and rationale (anyone proposing changes writes here first) |
 
-**Ne kadar okumalı?** Tümünü okumak zorunlu değil: görev satırını + ilgili bölümü oku.
-Örneğin "T-M1-04 ffmpeg argüman üretimi" için PLAN §11 ve ARCHITECTURE §3 yeterlidir.
+**How much to read?** You do not need to read every file in full: read your task row plus the relevant section.
+For example, for `"T-M1-04 ffmpeg argument generation"`, reading PLAN §11 and ARCHITECTURE §3 is sufficient.
 
-## 1. Çalışma kuralları
+## 1. Engineering and AI-hygiene rules
 
-- **Görev ID'si olmadan kod yazma.** PLAN.md'deki `T-Mx-yy` görevlerinden birini seç; yeni iş
-  gerekiyorsa önce plana yeni bir görev ID'si ekle.
-- **AC kırılamaz.** Kabul kriterleri değişecekse: gerekçe + etki + geri dönüş planı ile
-  `docs/DECISIONS.md`'ye yaz, sonra PLAN.md'yi güncelle.
-- **Bağımlılık yönü tek yönlüdür:**
-  `ekran-cli → {ekran-ui, ekran-sinks, ekran-transport, ekran-audio, ekran-encode, ekran-capture} → ekran-core`.
-  `ekran-core` hiçbir şeye bağımlı olamaz.
-- **`ekran-core` dondurulur** (PLAN T-M0-07). Başka ajanlar trait sözleşmesini değiştiremez;
-  ihtiyaç varsa `docs/DECISIONS.md`'ye "DONDURMA KALDIRMA İSTEĞİ" notu düşür.
-- **Dosya sahipliği:** her crate'in dosyaları tek ajanın sorumluluğundadır (EXECUTION.md §4).
-  Ortak dosyalar (`Cargo.toml`, `README.md`, `docs/`) yalnızca **Entegrasyon ajanının** (H).
-- **Kırıcı değişiklikler:** `config.toml` şema sürümü (`schema_version`) artırılır; config alan
-  adları ve CLI bayrak adları geriye dönük uyumlu kalır.
-- **Dil:** arayüz metinleri/hata mesajları **Türkçe**; kod tanımlayıcıları, doc yorumları ve
-  commit mesajları **İngilizce**.
-- **Commit:** Conventional Commits + görev ID'si:
+- **Do not write code without a Task ID.** Pick one of the `T-Mx-yy` tasks in `docs/PLAN.md`; if new work is required, add a new Task ID to `PLAN.md` first.
+- **ACs cannot be broken.** If an acceptance criterion must change: record rationale + impact + rollback plan in `docs/DECISIONS.md`, then update `PLAN.md`.
+- **Hard 350-line file cap for autonomous AI editing.** Every non-test section of a `.rs` file (excluding `#[cfg(test)]` blocks) and every asset file (`assets/player/*`, `assets/gui/*.py`) MUST remain `<= 350` lines. Split growing modules into focused submodules (`foo/mod.rs` + `foo/<concern>.rs`). Enforced by `tests/ai_hygiene.rs`.
+- **Dependency direction is strictly one-way:**
+  `screencast-cli -> {screencast-ui, screencast-sinks, screencast-transport, screencast-audio, screencast-encode, screencast-capture} -> screencast-core`.
+  `screencast-core` must depend on zero other workspace crates. Enforced by `tests/ai_hygiene.rs`.
+- **`screencast-core` trait contracts stay stable** (see `D-010`). Feature work in sibling crates cannot alter public trait signatures without updating `docs/DECISIONS.md` and `docs/ARCHITECTURE.md`.
+- **File ownership:** each crate's files belong to one role (`docs/EXECUTION.md` §3).
+  Shared files (`Cargo.toml`, `README.md`, `docs/`) belong to the **Integration agent** (H) alone.
+- **Breaking config changes:** bump `config.toml` `schema_version`; config field names and CLI flags remain backward-compatible.
+- **Language & i18n (English-first):** Code identifiers, doc comments, inline comments, tracing logs, tests, fixtures, docs, and default user-facing text MUST be **English**. Turkish (`tr`) user-facing strings are supported via the dedicated i18n catalogs (`crates/screencast-core/src/i18n/tr/`, `assets/player/i18n_tr.js`, `assets/gui/screencast_gui_i18n_tr.py`) selected via `--lang en|tr`, `SCREENCAST_LANG`, `config.toml`, or `LANG`. Zero Turkish characters or `_tr` identifier suffixes are permitted outside those dedicated `tr` catalogs and explicit keymap/UTF-16 test vectors (`tests/ai_hygiene.rs`).
+- **Commits:** Conventional Commits + task ID:
   `feat(sinks): cast handshake [T-M4-02]`, `fix(audio): rebind monitor on sink change [T-M2-02]`.
-- **Testler ağa çıkmaz** (localhost loopback serbest). Canlı cihaz testleri `#[ignore]` edilir ve
-  `docs/TEST-PLAN.md` checklist'ine yazılır.
-- **Runtime bağımlılığı:** çalışma anında yalnızca `ffmpeg` gerekir; GStreamer yalnız Wayland
-  portal yolunda. Yeni runtime bağımlılığı eklenirse PLAN §12 risk tablosuna yazılır.
+- **Tests do not hit external networks** (localhost loopback is allowed). Live-device tests are marked `#[ignore]` and tracked in `docs/TEST-PLAN.md`.
+- **Runtime dependencies:** only `ffmpeg` is required at runtime; GStreamer is used only on the Wayland portal path. Any new runtime dependency must be logged in `PLAN.md` §12.
 
-## 2. Arayüz kuralları
+## 2. UI rules
 
-- Yeni bir renk/ölçü/hareket eklenmeden önce `docs/DESIGN.md` güncellenir.
-- Oynatıcıdaki her durum (bağlanıyor, canlı, buffering, duraklatıldı, izin gerekli, hata)
-  DESIGN §6.2'deki görsel karşılığa uymak zorundadır.
-- Token'lar (`--canvas`, `--accent`, …) `style.css` içinde tanımlıdır; güncellenmiş olmalıdır.
-- TUI'de 80×24 terminalde her şey görünür olmalıdır.
+- Add any new color, spacing, or motion token to `docs/DESIGN.md` before adding it to code.
+- Every player state (connecting, live, buffering, paused, permission required, error) must match `DESIGN.md` §6.2.
+- Tokens (`--canvas`, `--accent`, ...) are defined in `assets/player/style.css` and must remain aligned.
+- Everything in the TUI must stay legible on an 80x24 terminal.
 
-## 3. Tuzaklar (önceden bilinen hatalar)
+## 3. Known pitfalls
 
-1. **Wayland'da `DISPLAY` var olsa bile `x11grab` ekranı göstermez** (sadece XWayland pencereleri,
-   genelde siyah). Wayland tespit edilirse portal yolu kullanılır.
-2. **PulseAudio monitor kaynağı** çıkış cihazı değişince ölür → `SourceWatcher` zorunlu.
-3. **ffmpeg'e `pipe:1` ile MP4 yazarken** `+empty_moov+frag_keyframe` şart (çıktı seek edilebilir değil).
-4. **MSE'de** ilk mesaj init segment'tir; istemci yeniden bağlanırsa sunucu init segment'i tekrar
-   gönderir. Parça sırası bozulursa oynatıcı donabilir.
-5. **HLS ayrı üretilir** (Cast/DLNA yolu); MSE/WS yolu HLS'i kullanmaz.
-6. **NVENC yoksa** VAAPI, o yoksa libx264 kullanılır; `ekran doctor` hangisinin seçildiğini yazar.
-7. **Cast protobuf alan numaraları** elle doğrulanmalı; mock sunucu testi yazılmadan gerçek TV'ye
-   gidilmez.
-8. **DLNA canlı HLS'i** çoğu TV reddeder → progressive MP4 fallback'i ve uyarı mesajı şart.
+1. **On Wayland, `x11grab` does not show the desktop even if `DISPLAY` is set** (only XWayland windows, otherwise black). Always route Wayland sessions through the portal path.
+2. **PulseAudio monitor sources** die when switching output sinks -> `SourceWatcher` is mandatory.
+3. **Writing MP4 to `ffmpeg` `pipe:1`** requires `+empty_moov+frag_keyframe` (stdout is non-seekable).
+4. **In MSE**, the first message is always the init segment; when a client reconnects, the server resends the init segment. Out-of-order fragments freeze playback.
+5. **HLS is generated separately** (Cast/DLNA path); the MSE/WebSocket path does not read HLS.
+6. **If NVENC is unavailable**, fall back to VAAPI, then `libx264`; `screencast doctor` prints the selected encoder.
+7. **Cast protobuf field numbers** must be manually verified; always pass mock server tests before testing on a physical TV.
+8. **DLNA live HLS** is rejected by many TVs -> progressive MP4 fallback and actionable guidance are mandatory.
 
-## 4. Görev tamamlama tanımı (Definition of Done)
+## 4. Definition of Done
 
-Bir görev "bitti" sayılır ancak:
-- [ ] kod yazıldı ve `cargo fmt` temiz
-- [ ] `cargo clippy --workspace -- -D warnings` temiz
-- [ ] ilgili testler var ve geçiyor (`cargo test --workspace`)
-- [ ] PLAN.md içindeki görev `[x]` işaretli
-- [ ] kullanıcıya görünen davranış değiştiyse README/DESIGN güncellendi
-- [ ] commit mesajında görev ID'si var
-- [ ] gerçek cihaz gerektiren doğrulama yapıldıysa TEST-PLAN.md checklist'i güncellendi
+A task is complete only when:
+- [ ] code is implemented and `cargo fmt --all -- --check` passes
+- [ ] `cargo clippy --workspace -- -D warnings` is clean
+- [ ] tests exist and pass (`cargo test --workspace`, including `ai_hygiene` and `i18n_cli`)
+- [ ] the task in `docs/PLAN.md` is marked `[x]`
+- [ ] user-visible behavior changes are reflected in `README.md` / `docs/DESIGN.md`
+- [ ] the commit message includes the task ID
+- [ ] any real-device verification performed is recorded in `docs/TEST-PLAN.md`
 
-## 5. İletişim
+## 5. Communication
 
-Kullanıcı Türkçe konuşuyor; ilerleme raporları Türkçe, kısa ve somut olmalı
-("ne çalışıyor, ne çalışmıyor, sırada ne var"). Belirsizlikte: **mantığı yazılı hale getir,
-sonra soruyu sor.** Belirsizliği çözebiliyorsan çöz ve kararı belgele.
+Keep progress updates concise and concrete ("what works, what does not, what is next"). When uncertain: write down the rationale clearly, resolve what is unambiguous cleanly, and document decisions in `docs/DECISIONS.md`.

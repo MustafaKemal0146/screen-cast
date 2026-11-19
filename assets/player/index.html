@@ -1,72 +1,81 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ekran — Canlı Yayın</title>
+  <title>screencast — Live Stream</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/overlays.css" />
 </head>
 <body>
-  <main id="stage" aria-label="ekran canlı yayın oynatıcısı">
-    <!-- ① Video sahnesi -->
+  <main id="stage" aria-label="screencast live stream player">
+    <!-- 1. Video stage -->
     <video id="player-video" autoplay playsinline muted></video>
 
-    <!-- ② Kumanda imleci overlay -->
+    <!-- 2. Remote control cursor overlay -->
     <div id="cursor-overlay" aria-hidden="true"></div>
 
-    <!-- ③ Üst bar -->
+    <!-- 3. Top bar -->
     <header id="top-bar">
       <div class="pill frosted" id="device-pill">
-        <span id="device-name">ekran</span>
+        <span id="device-name">screencast</span>
       </div>
       <div class="badges-right">
         <div class="pill frosted" id="live-badge">
           <span class="live-dot" id="live-dot"></span>
-          <span id="live-text">BAĞLANILIYOR</span>
+          <span id="live-text">CONNECTING</span>
         </div>
         <div class="pill frosted" id="quality-badge">auto</div>
         <div class="pill frosted" id="latency-badge">-- ms</div>
       </div>
     </header>
 
-    <!-- Durum katmanı -->
+    <!-- State overlay -->
     <section id="state-overlay" class="visible solid" role="status" aria-live="polite">
       <div class="spinner" id="state-spinner"></div>
-      <h1 class="state-title" id="state-title">Bağlanılıyor…</h1>
-      <p class="state-desc" id="state-desc">Masaüstü akışı hazırlanıyor.</p>
-      <button class="primary-action" id="state-action" hidden>Yeniden bağlan</button>
+      <h1 class="state-title" id="state-title">Connecting...</h1>
+      <p class="state-desc" id="state-desc">Preparing desktop stream.</p>
+      <button class="primary-action" id="state-action" hidden>Reconnect</button>
     </section>
 
-    <!-- ④ Alt kontrol paneli -->
-    <nav id="bottom-bar" class="frosted" aria-label="Oynatıcı kontrolleri">
-      <button class="ctrl-btn" id="btn-play" title="Oynat / Duraklat (Boşluk)" aria-label="Oynat veya duraklat">⏸</button>
-      <button class="ctrl-btn" id="btn-mute" title="Sesi aç/kapat (M)" aria-label="Sesi aç veya kapat">🔇</button>
-      <button class="ctrl-btn" id="btn-fullscreen" title="Tam ekran (F)" aria-label="Tam ekran">⛶</button>
-      <button class="ctrl-btn" id="btn-control" title="Kumanda modu (C)" aria-label="Kumanda modu">🖱 Kumanda</button>
-      <button class="ctrl-btn" id="btn-more" title="Menü" aria-label="Diğer seçenekler">⋯</button>
+    <!-- 4. Bottom control bar -->
+    <nav id="bottom-bar" class="frosted" aria-label="Player controls">
+      <button class="ctrl-btn" id="btn-play" title="Play / Pause (Space)" aria-label="Play or pause">⏸</button>
+      <button class="ctrl-btn" id="btn-mute" title="Mute / Unmute (M)" aria-label="Mute or unmute">🔇</button>
+      <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen (F)" aria-label="Toggle fullscreen">⛶</button>
+      <button class="ctrl-btn" id="btn-control" title="Remote control (C)" aria-label="Remote control mode">🖱 Remote</button>
+      <button class="ctrl-btn" id="btn-more" title="Menu" aria-label="More options">⋯</button>
     </nav>
 
-    <!-- İkincil menü -->
-    <div id="more-menu" role="dialog" aria-label="Yayın seçenekleri">
+    <!-- Secondary menu -->
+    <div id="more-menu" role="dialog" aria-label="Stream options">
       <div class="menu-row">
-        <label for="tv-mode-toggle">TV Modu (büyük arayüz)</label>
-        <button class="ctrl-btn" id="tv-mode-toggle">Kapalı</button>
+        <label id="lbl-tv-mode" for="tv-mode-toggle">TV Mode (large UI)</label>
+        <button class="ctrl-btn" id="tv-mode-toggle">Off</button>
       </div>
       <div class="menu-row">
-        <label for="quality-info">Aktif Kalite</label>
+        <label id="lbl-language" for="lang-toggle">Language</label>
+        <button class="ctrl-btn" id="lang-toggle">EN</button>
+      </div>
+      <div class="menu-row">
+        <label id="lbl-active-quality" for="quality-info">Active Quality</label>
         <span id="quality-info" class="menu-select" style="display:flex;align-items:center;">auto</span>
       </div>
       <div class="menu-row">
-        <span>Kısayollar</span>
-        <span style="color:var(--text-secondary);font-size:0.85em;">F · M · C · Boşluk</span>
+        <span id="lbl-shortcuts">Shortcuts</span>
+        <span id="shortcuts-hint" style="color:var(--text-secondary);font-size:0.85em;">F · M · C · Space</span>
       </div>
     </div>
 
-    <!-- ⑤ Toast -->
+    <!-- 5. Toast -->
     <div id="toast" class="frosted" role="status"></div>
   </main>
 
   <script src="/hls.min.js"></script>
+  <script src="/i18n_tr.js"></script>
+  <script src="/i18n.js"></script>
+  <script src="/mse.js"></script>
+  <script src="/controls.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

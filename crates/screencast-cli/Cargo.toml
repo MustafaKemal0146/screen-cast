@@ -1,0 +1,24 @@
+[package]
+name = "screencast-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1"
+clap = { workspace = true, features = ["derive"] }
+screencast-audio = { workspace = true }
+screencast-capture = { workspace = true }
+screencast-core = { workspace = true }
+screencast-encode = { workspace = true }
+screencast-sinks = { workspace = true }
+screencast-transport = { workspace = true }
+screencast-ui = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[[bin]]
+name = "screencast"
+path = "src/main.rs"

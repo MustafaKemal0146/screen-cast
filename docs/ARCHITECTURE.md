@@ -1,205 +1,127 @@
-# ekran — Mimari (v1.0)
+# screencast — Architecture (v2.0)
 
-Rust workspace. Her crate bağımsız test edilebilir; asıl uygulama `ekran-cli` binary'sidir.
+Rust workspace. Each crate can be compiled and tested independently; the main user binary is
+`screencast` built from `screencast-cli`.
 
 ```
-ekran/
-├── Cargo.toml                 # workspace
+screen-cast/
+├── Cargo.toml                   # workspace
 ├── crates/
-│   ├── ekran-core/            # paylaşılan tipler, trait'ler, hata tipleri
-│   ├── ekran-capture/         # CaptureSource: x11 | wayland(portal) | test
-│   ├── ekran-encode/          # kalite merdiveni, ffmpeg/NVENC argüman üretimi, adaptif kontrol
-│   ├── ekran-audio/           # PulseAudio/PipeWire kaynak çözümleme + değişim takipçisi
-│   ├── ekran-transport/       # HTTP + WebSocket sunucu, fMP4 ayrıştırma, hub, latency ölçümü
-│   ├── ekran-sinks/           # Sink trait + Cast | DLNA | Browser | (Miracast | AirPlay) + keşif
-│   ├── ekran-ui/              # ratatui TUI + gömülü web varlıkları (Apple tarzı oynatıcı)
-│   └── ekran-cli/             # clap tabanlı binary: share, doctor, discover, selftest, config
+│   ├── screencast-core/         # shared types, traits, errors, config, en/tr i18n
+│   ├── screencast-capture/      # CaptureSource & Control: x11 | wayland(portal) | test
+│   ├── screencast-encode/       # quality ladder, ffmpeg/NVENC arg builder, adaptive/idle control
+│   ├── screencast-audio/        # PulseAudio/PipeWire monitor resolution + SourceWatcher
+│   ├── screencast-transport/    # HTTP + WebSocket server, fMP4 parser, hub, HLS pipeline
+│   ├── screencast-sinks/        # Sink adapters (Cast, DLNA, Miracast WFD/MS-MICE, Browser) + discovery
+│   ├── screencast-ui/           # ratatui TUI + embedded web player & GTK3 GUI bundles
+│   └── screencast-cli/          # clap binary (`screencast`): share, doctor, discover, selftest, config, gui
 ├── assets/
-│   ├── player/                # index.html, app.js, style.css (Web oynatıcı)
-│   └── receiver/              # (opsiyonel) Cast custom receiver sayfası
-├── docs/
-│   ├── PLAN.md                # görevler + AC (normatif)
-│   ├── ARCHITECTURE.md        # bu dosya
-│   ├── PROTOCOLS.md           # sink protokol spesifikasyonları
-│   └── TEST-PLAN.md           # gerçek cihaz doğrulama checklist'i
-└── tests/                     # entegrasyon testleri, sahte (fake) sink
+│   ├── player/                  # index.html, style.css, overlays.css, i18n.js, i18n_tr.js, mse.js, controls.js, app.js, hls.min.js
+│   └── gui/                     # screencast_gui.py + css/i18n/helpers/widgets/runner modules
+├── docs/                        # PLAN.md, ARCHITECTURE.md, PROTOCOLS.md, DESIGN.md, EXECUTION.md, TEST-PLAN.md, DECISIONS.md
+└── legacy/prototype-go/         # archival Go prototype reference (not built by Cargo or CI)
 ```
 
-## 1. ekran-core — paylaşılan sözleşmeler
+## 1. `screencast-core` — shared contracts & English-first i18n
 
 ```rust
-/// Yayın planı: kalite, çözünürlük, ses ve kısıtlamalar.
 pub struct StreamPlan {
     pub quality: Quality,
+    pub fps: u32,
     pub audio: bool,
-    pub max_fps: u32,
-    pub target_bitrate_kbps: u32,
+    pub port: u16,
+    pub token: String,
+    pub bind: String,
     pub fragment_duration_ms: u64,
+    pub codec: Option<String>,
+    pub audio_device: Option<String>,
+    pub base_url: Option<String>,
 }
 
 pub enum Quality { P480, P540, P720, P1080, P1440, Auto }
-impl Quality {
-    pub fn width(&self) -> u16;  // 854, 960, 1280, 1920, 2560
-    pub fn height(&self) -> u16; // 480, 540, 720, 1080, 1440
-    pub fn video_bitrate(&self) -> &str;   // "1.5M" ... "14M"
-    pub fn gop_frames(&self) -> u32;      // GOP = gop_frames / fps
-    pub fn audio_bitrate(&self) -> &str;  // "96k" ... "192k"
-    pub fn parse(s: &str) -> Result<Quality, Error>;
-}
 
-/// Sink türleri — marka bağımsız protokol soyutlaması.
-pub enum SinkKind { Browser, Cast, Dlna, Miracast, AirPlay }
+pub enum SinkKind { Browser, Cast, Dlna, Miracast, Airplay }
 
-pub struct DeviceInfo {
-    pub id: String,
-    pub name: String,
-    pub kind: SinkKind,
-    pub address: String,
-    pub port: u16,
-    pub model: String,
-    pub capabilities: Capabilities,
-}
-
-pub struct Capabilities {
-    pub live_video: bool,
-    pub audio: bool,
-    pub remote_input: bool,   // kumanda kanalı var mı
-    pub native_player: bool,  // TV'nin kendi oynatıcısı mı
-}
-
-/// Sink sözleşmesi — her protokol buraya uyar.
 #[async_trait::async_trait]
 pub trait Sink: Send + Sync {
     fn kind(&self) -> SinkKind;
-    /// Verilen planla hazırlık (ör. Cast: CONNECT, DLNA: tanıtım).
     async fn prepare(&self, plan: &StreamPlan) -> Result<PreparedSink>;
-    /// Yayını başlat.
     async fn start(&self, sink: PreparedSink) -> Result<()>;
-    /// Yayını durdur ve kaynakları bırak.
+    async fn pause(&self) -> Result<()> { Ok(()) }
+    async fn resume(&self) -> Result<()> { Ok(()) }
     async fn stop(&self) -> Result<()>;
-    /// Sink canlı mı?
     async fn is_alive(&self) -> bool { true }
 }
 ```
 
-**Kural:** Hiçbir crate `ekran-core` dışındaki crate'e bağımlı olmaz (bağımlılık yönü tek yönlü: cli → {ui, sinks, transport, capture, encode, audio} → core).
+- **Strict dependency rule:** All 6 middle crates depend ONLY on `screencast-core`; only `screencast-cli` wires them together.
+- **Zero-dependency i18n:** `screencast_core::i18n` provides `Language::{En, Tr}` (`En` default), `TextKey`, `t()`, `tf()`, `resolve_language()`, resolving in precedence order:
+  1. `--lang en|tr` CLI flag
+  2. `SCREENCAST_LANG` environment variable
+  3. Explicit `language = "..."` in `~/.config/screencast/config.toml`
+  4. `LANG` environment variable
+  5. Default `Language::En`
 
-## 2. ekran-capture — ekranı kareye çevirme
+## 2. `screencast-capture` — desktop capture & remote control
 
-```rust
-#[async_trait::async_trait]
-pub trait CaptureSource: Send {
-    /// Ekranı ffmpeg/gstreamer girdisi olarak tanımlar.
-    fn describe(&self) -> CaptureDescriptor;
-    /// Üretici sürecini başlatır; stdout fMP4 taşır.
-    async fn spawn(&self) -> Result<CaptureProcess>;
-    /// Mevcut monitörleri listeler.
-    fn monitors(&self) -> Result<Vec<Monitor>>;
-}
+Submodules (`<= 350` lines each):
+- `source.rs`: backend auto-detection (`SessionInfo`, `select_capture_source`).
+- `test.rs`: `TestSource` (`ffmpeg -f lavfi -i testsrc2`) for CI and `selftest`.
+- `x11/{mod.rs, probe.rs}`: `X11Source` (`x11grab`), monitor enumeration via `xrandr`, NVENC/VAAPI/x264 probing.
+- `wayland/{mod.rs, gst_probe.rs, portal.rs}`: XDG Desktop Portal ScreenCast (`zbus`), persistent `restore_token`, PipeWire fd piped into `gst-launch-1.0`.
+- `control/{mod.rs, wayland_portal.rs, keymap.rs}`: `Control` trait implementations (`xdotool` on X11, `RemoteDesktop` portal on Wayland, full X11 keysym mapping including Unicode characters).
 
-pub struct CaptureDescriptor {
-    pub backend: &'static str,     // "x11" | "wayland" | "test"
-    pub display: String,
-    pub monitor: Option<Monitor>,
-    pub note: Option<String>,      // "Wayland: portal gerekli"
-}
-```
+## 3. `screencast-encode` — encoding & smart quality
 
-Uygulamalar:
-- `TestSource` — lavfi `testsrc2`; CI ve selftest için.
-- `X11Source` — ffmpeg `x11grab` (hızlı yol) **veya** M10'da `x11rb` tabanlı kendi motorumuz.
-- `WaylandSource` — `zbus` ile `org.freedesktop.portal.ScreenCast`: CreateSession → SelectSources → Start; dönen unix fd'yi `gst-launch-1.0 pipewiresrc fd=N ! ... ! mp4mux` sürecine veririz (derleme bağımlılığı yok, runtime'da gst gerekir).
+Submodules (`<= 350` lines each):
+- `codec/{mod.rs, probe.rs}`: `h264_nvenc -> h264_vaapi -> libx264` hardware capability probe with 1-frame runtime smoke verification.
+- `plan.rs`: deterministic `ffmpeg` argument generation matching `PLAN` §11 (`+frag_keyframe+empty_moov+default_base_moof+omit_tfhd_offset`).
+- `adaptive.rs`: `AdaptiveController` (hysteresis +20% up / -15% down) & `IdleDetector` (64x36 FNV-1a/MAD keyframe change detector dropping fps after idle threshold).
 
-## 3. ekran-encode — kodlama ve akıllı kalite
+## 4. `screencast-audio` — system audio
 
-Sorumluluklar:
-1. **Kodlayıcı seçimi**: `h264_nvenc` → `h264_vaapi` → `libx264` (otomatik, `--codec` ile ezilebilir).
-2. **Argüman üretimi**: kalite merdiveni + GOP + `-force_key_frames`.
-3. **Adaptif kontrol**: istemciden gelen hız ölçümü → merdiven seçimi (histerezis: yükseltme eşiği %20, düşürme eşiği %15).
-4. **Boş ekran algılama**: ikinci hafif yakalama (64×36) veya encoder'dan `-vf` ile küçültülmüş kopya; kare imzası (FNV-1a) 3 sn değişmezse `idle` modu: fps 30→1, bitrate → 300 kb/s.
+- `source.rs`: resolves default sink monitor via `pactl` (forcing `LC_ALL=C` with localized fallback parsing) and manages opt-in `module-null-sink` loopbacks.
+- `watcher.rs`: `SourceWatcher` monitoring `pactl subscribe` to emit `AudioEvent::SourceChanged` within `<= 3 s` (AC-3).
 
-fMP4 çıktı biçimi (ffmpeg, pipe'a yazılır):
+## 5. `screencast-transport` — HTTP/WS/HLS streaming
 
-```
--f h264_nvenc -preset p1 -tune ll -rc vbr -zerolatency 1
--b:v 8M -maxrate 8M -bufsize 16M -g 15 -bf 0
--force_key_frames expr:gte(t,n_forced*0.5)
--movflags +frag_keyframe+empty_moov+default_base_moof+omit_tfhd_offset
--frag_duration 500000 -f mp4 pipe:1
-```
+Submodules (`<= 350` lines each):
+- `http/{mod.rs, routes.rs, stream.rs}`: token-protected HTTP server, static player assets (`/`, `/style.css`, `/overlays.css`, `/i18n.js`, `/i18n_tr.js`, `/controls.js`, `/mse.js`, `/app.js`, `/hls.min.js`), progressive MP4 streaming, DLNA XML descriptors (`/description.xml`, `/av_transport.xml`), snapshots (`/snap.jpg`), and `/healthz`.
+- `ws.rs`: RFC 6455 WebSocket upgrade, binary fMP4 broadcast, text JSON control/telemetry channel.
+- `mp4.rs`: `BoxReader` + `FragmentAssembler` separating `ftyp+moov` init segments from `moof+mdat` fragments.
+- `hub.rs`: `StreamHub` 1-to-N broadcast with slow-client lag drop and init-segment replay on reconnect.
+- `hls.rs`: `HlsPipeline` spawning `ffmpeg -f hls` for Cast/DLNA TVs.
+- `api.rs`: JSON response structs (`ApiInfo`, `ApiDiscover`, `ApiError`).
 
-## 4. ekran-audio — sistem sesi
+## 6. `screencast-sinks` — discovery & protocol sinks
 
-```rust
-pub struct AudioSource { pub device: String, pub kind: AudioKind }
-pub enum AudioKind { Monitor, Mic, Custom }
+Modularized submodules (`<= 350` non-test lines each):
+- `mdns/{mod.rs, wire.rs, avahi.rs}`: pure-Rust mDNS + `avahi-browse` merge (`_googlecast._tcp`, `_display._tcp`, `_airplay._tcp`, `_raop._tcp`).
+- `ssdp/{mod.rs, http.rs, xml.rs}`: SSDP M-SEARCH scanner, chunked/keep-alive HTTP client, UPnP AVTransport `controlURL` parser.
+- `cast/{mod.rs, tls.rs, session.rs, heartbeat.rs}`: protobuf cast channel (`prost`), TLS 8009 handshake, background PING/PONG heartbeat, HLS `LOAD` & playback controls.
+- `dlna/{mod.rs, xml.rs}`: UPnP `description.xml`/`content.xml`, SSDP `NOTIFY` advertiser, SOAP AVTransport with HLS -> progressive MP4 fallback.
+- `mice/{mod.rs, session.rs}`: `[MS-MICE]` TCP 7250 UTF-16LE `SOURCE_READY` / `STOP_PROJECTION` LAN projection control.
+- `wfd/{mod.rs, rtsp.rs, handshake.rs, rtp.rs}`: WFD RTSP M1..M7 server and RFC 2250 `PT=33` MPEG2-TS over RTP/UDP streamer.
+- `wireless/{mod.rs, types.rs, iw_list.rs, iw_dev.rs, planner.rs, wpa.rs, p2p_session.rs, nm_discover.rs, nm_connect.rs}`: WDI/MCC concurrency probing, virtual P2P isolation, DFS-safe P2P Client (`go_intent=0`) negotiation, and rootless NetworkManager D-Bus fallback.
+- `miracast.rs`, `browser.rs`, `select.rs`, `iface.rs`.
 
-/// Varsayılan çıkışın monitör kaynağını çözer.
-pub fn resolve_default_monitor() -> Result<AudioSource>;
-/// Sink/cihaz değişimini izler; kaynak değişince bildirir.
-pub struct SourceWatcher { /* pactl subscribe tabanlı */ }
-```
+## 7. `screencast-ui` — terminal UI & embedded assets
 
-Akış: `ekran-audio` bir **olay** üretir (`AudioSourceChanged`), `ekran-cli` bunu alır ve ses girdisini yeniden bağlar (ffmpeg sürecini yeniden başlatmadan mümkünse; ffmpeg girdileri değişmezse süreç yeniden başlatılır — 1–2 sn'lik bir kesinti kabul edilir).
+- `tui.rs`: `ratatui` 80x24 + compact terminal UI with live `en`/`tr` localization via `screencast-core::i18n`.
+- `assets.rs`: compiles in all 9 web player assets (`assets/player/*`) and all 7 GTK3 desktop GUI modules (`assets/gui/*.py`).
 
-## 5. ekran-transport — sunucu
-
-Rotalar:
-
-| Yol | Açıklama |
-|---|---|
-| `GET /` | Oynatıcı sayfası (Apple tarzı) |
-| `GET /player.js`, `/style.css` | Statik varlıklar |
-| `GET /ws?token=…` | WebSocket: **ikili** = fMP4 parçası, **metin** = kumanda olayı |
-| `GET /api/info` | Plan, kalite, cihazlar, sürüm (JSON) |
-| `GET /api/stats` | Anlık istatistik (JSON) |
-| `GET /api/discover` | Keşfedilen cihazlar (JSON) |
-| `GET /hls/stream.m3u8` | HLS (Cast/DLNA sink'ları ve eski tarayıcılar için) |
-| `GET /healthz` | Sağlık (herkese açık) |
-
-fMP4 akışı: `moov`/`ftyp` → **init segment** (her istemciye bir kez), sonra `moof`+`mdat` → **medya parçası** (anında yayınlanır).
-
-Yavaş istemci koruması: istemci gönderim kuyruğu 2 sn'yi aşarsa parça atılır (istemci zaten geç kalıyor).
-
-## 6. ekran-sinks — protokoller ve keşif
-
-```rust
-pub struct Discovery { pub devices: Vec<DeviceInfo> }
-
-/// mDNS: _googlecast._tcp, _airplay._tcp, _raop._tcp
-pub struct MdnsScanner { ... }
-/// SSDP: M-SEARCH → MediaRenderer, WifiDisplay
-pub struct SsdpScanner { ... }
-
-pub enum SinkFactory { fn build(device: &DeviceInfo, plan: &StreamPlan) -> Box<dyn Sink> }
-```
-
-Cast/DLNA sink'ları HLS URL'ini kullanır (TV'nin kendi oynatıcısı), Browser sink ise WebSocket/MSE'yi kullanır.
-
-## 7. ekran-ui — iki arayüz
-
-**Terminal (Linux tarafı, ratatui):**
-- Cihaz listesi (isim, protokol türü, IP, durum), ok tuşlarıyla seçim
-- Canlı istatistik: fps, bitrate, istemci sayısı, gecikme, kalan CPU
-- Kısayollar: `q` çık, `p` duraklat, `m` ses, `f` tam ekran bilgisi, `s` ekran görüntüsü
-
-**Web oynatıcı (TV tarafı):**
-- Siyah zemin, buzlu cam kontrol paneli, gizlenen üst bar, yumuşak geçişler
-- MSE tabanlı oynatma, "canlı kenar" (live edge) modu → tampon < 0.3 sn
-- Gecikme rozeti, kalite göstergesi, kumanda modu toggle, sanal imleç
-- Kumanda tuşları: `F` tam ekran, `C` kumanda, `M` ses, `Space` oynat/duraklat
-
-## 8. Konfigürasyon (`~/.config/ekran/config.toml`)
+## 8. Configuration (`~/.config/screencast/config.toml`)
 
 ```toml
 schema_version = 1
+language = "en"           # "en" | "tr"
 
 [share]
 quality = "auto"          # 480p | 540p | 720p | 1080p | 1440p | auto
 fps = 30
 audio = true
 port = 7700
-token = ""                # boşsa otomatik üretilir
+token = ""                # auto-generated if empty
 bind = "0.0.0.0"
 
 [capture]
@@ -218,118 +140,33 @@ up_threshold = 0.20
 down_threshold = 0.15
 ```
 
-## 9. Hata modeli
+## 9. Error model & retry policy
 
-Tüm hatalar `ekran_core::Error` üzerinden; her varyant **Türkçe kullanıcı mesajı** taşır ve `ekran-cli` bunları tek satırda, aksiyon önerisiyle gösterir:
+All domain errors go through `screencast_core::Error` and expose both localized messages
+(`message(lang)`) and actionable hints (`hint_for(lang)`):
 
-```rust
-pub enum Error {
-    NoDisplay,
-    PortalDenied,
-    EncoderUnavailable { tried: Vec<String> },
-    NoSinkFound,
-    SinkRefused(String),
-    AudioDeviceLost(String),
-    ConfigInvalid { field: String, hint: String },
-    Io(std::io::Error),
-}
-```
-
----
-
-## 10. HTTP API sözleşmesi (sabit)
-
-| Yöntem | Yol | Gövde / Yanıt | Not |
-|---|---|---|---|
-| GET | `/` | HTML oynatıcı | `assets/player/index.html` |
-| GET | `/player.js`, `/style.css`, `/hls.min.js` | statik | içerik tipi doğru |
-| GET | `/ws?token=…` | WebSocket | token yanlışsa 401 |
-| GET | `/api/info` | JSON `{version, plan, monitors, devices, backend, startedAt}` | şema sabit |
-| GET | `/api/stats` | JSON `{clients, fragments, bytes, fps, bitrateKbps, latencyMs, idle}` | 1 sn aralıkla |
-| GET | `/api/discover` | JSON `{devices:[DeviceInfo]}` | `--json` çıktısıyla aynı şema |
-| GET | `/hls/stream.m3u8` | HLS playlist | Cast/DLNA sink'ları bunu okur |
-| GET | `/hls/seg*.ts` | segment | HLS |
-| GET | `/snap.jpg` | JPEG anlık görüntü | `ekran` TUI kısayolu |
-| GET | `/healthz` | `ok` | yetki gerekmez |
-
-**Token:** `StreamPlan.token` boşsa sunucu başlarken 16 karakterlik rastgele token üretir ve
-terminalde gösterir. `/` dışındaki tüm rotalar token ister (`/healthz` hariç).
-
-**Hata biçimi (JSON):**
-```json
-{"error":"SinkRefused","message":"Hedef cihaz bağlantıyı reddetti: ...","hint":"TV'nin Cast desteğini kontrol edin"}
-```
-`hint` alanı her hatta **eylem önerisi** içerir (ARCHITECTURE §9).
-
-## 11. Crate içi dosya düzeni (birebir)
-
-```
-crates/ekran-core/src/
-  lib.rs        # Quality, StreamPlan, SinkKind, DeviceInfo, Capabilities, Monitor, Backend, Stats
-  traits.rs     # Sink, PreparedSink, CaptureSource, Control, Discovery
-  error.rs      # Error + Turkish messages + retry policy
-  config.rs     # config.toml şeması (schema_version = 1)
-
-crates/ekran-capture/src/
-  lib.rs        # mod tanımları
-  source.rs     # CaptureSource trait uygulamaları
-  x11.rs        # X11Source (ffmpeg x11grab)
-  wayland.rs    # WaylandSource (portal; Dalga 2)
-  test.rs       # TestSource (lavfi)
-
-crates/ekran-encode/src/
-  lib.rs
-  plan.rs       # kalite → ffmpeg argümanları (PLAN §6)
-  codec.rs      # NVENC/VAAPI/libx264 seçimi
-  adaptive.rs   # auto kalite + boş ekran algılama
-
-crates/ekran-audio/src/
-  lib.rs
-  source.rs     # monitor kaynağı çözümleme
-  watcher.rs    # pactl subscribe tabanlı değişim izleyici
-
-crates/ekran-transport/src/
-  lib.rs
-  http.rs       # HTTP rotaları + statik dosyalar
-  ws.rs         # WebSocket (RFC 6455)
-  mp4.rs        # fMP4 kutu ayrıştırıcı
-  hub.rs        # yayın hub'ı + istemci koruması
-  hls.rs        # HLS üretimi (ffmpeg -f hls)
-  api.rs        # JSON tipleri
-
-crates/ekran-sinks/src/
-  lib.rs
-  mdns.rs       # mDNS tarayıcı
-  ssdp.rs       # SSDP tarayıcı + NOTIFY
-  cast.rs       # Google Cast sink
-  dlna.rs       # DLNA sink
-  browser.rs    # tarayıcı sink (yalnız URL + kontrol)
-  select.rs     # otomatik sink seçimi (PROTOCOLS §7)
-
-crates/ekran-ui/src/
-  lib.rs
-  tui.rs        # ratatui arayüzü (DESIGN §7)
-  assets.rs     # assets/player gömme
-
-crates/ekran-cli/src/
-  main.rs       # clap komutları
-  doctor.rs     # doctor + --bench/--idle/--audio-switch/--quality
-  share.rs      # share --to/--quality/--audio
-  discover.rs   # discover --json
-  selftest.rs   # selftest
-```
-
-## 12. Hata modeli ve yeniden deneme
-
-| Hata | Yeniden deneme | Kullanıcı davranışı |
+| Error | Retry | User guidance |
 |---|---|---|
-| `NoDisplay` | hayır | "X11/Wayland oturumu bulunamadı" + "Xorg oturumuna geç" önerisi |
-| `PortalDenied` | kullanıcı tekrar denerse | "İzin verilmedi" + "portal penceresinde tekrar izin ver" |
-| `EncoderUnavailable` | hayır | "h264_nvenc yok → VAAPI → libx264 denendi" zinciri raporlanır |
-| `NoSinkFound` | 5 sn sonra tekrar tara | keşif ipucu verilir |
-| `SinkRefused` | 3 kez, 1/2/4 sn arayla | TV'nin Cast/DLNA desteği kontrol edilir |
-| `AudioDeviceLost` | sürekli (watcher) | ses kaynağı yeniden bağlanır, kullanıcı bilgilendirilmez |
-| `ConfigInvalid` | hayır | alan + geçerli değerler listelenir |
+| `NoDisplay` | No | Session not found -> start inside X11/Wayland desktop |
+| `PortalDenied` | Prompt retry | Permission declined -> approve screen-share portal dialog |
+| `EncoderUnavailable` | No | Reports tried chain -> verify `ffmpeg`/GPU drivers via `screencast doctor` |
+| `NoSinkFound` | Re-scan | No TV found -> check Wi-Fi/LAN or use browser mode |
+| `SinkRefused` | 3x (1/2/4s) | Target refused connection -> verify TV standby/protocol or try browser fallback |
+| `AudioDeviceLost` | Watcher rebind | `SourceWatcher` automatically switches to new monitor source |
+| `ConfigInvalid` | No | Reports invalid field and valid values |
 
-Tüm hatalar `tracing` ile `warn!` seviyesinde loglanır (kullanıcıya gösterilmez, `ekran doctor`
-ile görülebilir).
+## 10. HTTP API contract
+
+| Method | Path | Response | Notes |
+|---|---|---|---|
+| GET | `/` | HTML player | `assets/player/index.html` (public) |
+| GET | `/style.css`, `/overlays.css`, `/i18n.js`, `/i18n_tr.js`, `/controls.js`, `/mse.js`, `/app.js`, `/hls.min.js` | Static assets | Correct MIME types (public) |
+| GET | `/description.xml`, `/av_transport.xml` | UPnP DMR XML | DLNA discovery (public) |
+| GET | `/healthz` | `ok` | Liveness check (public) |
+| GET | `/ws?token=...` | WebSocket | Binary fMP4 + JSON control/stats (401 without valid token) |
+| GET | `/api/info` | JSON `{version, language, plan, monitors, devices, backend, startedAt}` | Token required |
+| GET | `/api/stats` | JSON `{clients, fragments, bytes, fps, bitrateKbps, latencyMs, paused, idle, audio}` | Token required |
+| GET | `/api/discover` | JSON `{devices: [...]}` | Token required |
+| GET | `/hls/stream.m3u8`, `/hls/seg*.ts` | HLS media | Cast/DLNA sinks (token required) |
+| GET | `/stream.mp4` | Progressive fMP4 | DLNA/WFD fallback (token required) |
+| GET | `/snap.jpg` | Latest JPEG frame | TUI `s` shortcut / preview (token required) |

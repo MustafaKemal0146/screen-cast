@@ -1,0 +1,12 @@
+[package]
+name = "screencast-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crossterm = { workspace = true }
+ratatui = { workspace = true }
+screencast-core = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }

@@ -1,107 +1,85 @@
-# ekran — Test Planı (v2.0)
+# screencast — Test Plan (v3.0)
 
-İki bölüm: **A. otomatik testler** (CI'da çalışır) ve **B. gerçek cihaz doğrulaması**
-(elle, `ekran doctor --live` ile).
-
----
-
-## A. Otomatik testler
-
-### A1. Birim testleri (crate bazında)
-
-| Test adı | Kapsam | AC |
-|---|---|---|
-| `ekran_core::tests::quality_roundtrip` | 480/540/720/1080/1440 → doğru ölçü | PLAN §11 |
-| `ekran_core::tests::gop_shrinks_with_quality` | GOP kaliteyle küçülür | AC-1 |
-| `ekran_core::tests::quality_parse_rejects_unknown` | "4k" hata verir, Türkçe mesaj | §9 |
-| `ekran_core::config::tests::schema_version_mismatch` | eski şema sürümü anlaşılır hata | T-M0-05 |
-| `ekran_encode::plan::tests::snapshot_1080p` | ffmpeg argümanları PLAN §11 ile birebir | T-M1-04 |
-| `ekran_encode::plan::tests::snapshot_480p` | aynı, 480p | T-M1-04 |
-| `ekran_encode::codec::tests::fallback_chain` | nvenc→vaapi→libx264 | T-M1-03 |
-| `ekran_encode::adaptive::tests::hysteresis_no_flap` | %20↑ / %15↓ eşiği zıplama yapmaz | T-M2-05 |
-| `ekran_transport::mp4::tests::init_segment_detected` | ftyp+moov ayrımı | T-M1-06 |
-| `ekran_transport::mp4::tests::fragment_detected` | moof+mdat ayrımı | T-M1-06 |
-| `ekran_transport::hub::tests::slow_client_does_not_block` | yavaş istemci diğerlerini bloklamaz | T-M1-07 |
-| `ekran_transport::ws::tests::handshake_and_binary_frame` | RFC 6455 el sıkışma + binary | T-M1-05 |
-| `ekran_transport::ws::tests::token_required` | token'sız bağlantı 401 | T-M1-08 |
-| `ekran_audio::watcher::tests::sink_change_triggers_rebind` | mock `pactl` ile değişim → yeniden bağlama | AC-3 |
-| `ekran_audio::source::tests::resolves_default_monitor` | varsayılan sink'in monitor'ı | T-M2-01 |
-| `ekran_sinks::mdns::tests::parses_googlecast_txt` | TXT alanları doğru | T-M3-01 |
-| `ekran_sinks::ssdp::tests::parses_location_and_usn` | SSDP yanıtı ayrıştırma | T-M3-02 |
-| `ekran_sinks::cast::tests::protobuf_roundtrip` | CastMessage kodlama/çözme | T-M4-01 |
-| `ekran_sinks::cast::tests::mock_server_handshake` | mock Cast sunucusuyla CONNECT/PING | T-M4-02 |
-| `ekran_sinks::dlna::tests::content_xml_is_valid` | DIDL-Lite XML geçerli | T-M5-01 |
-| `ekran_sinks::select::tests::prefers_cast_over_dlna` | otomatik seçim sırası | PROTOCOLS §7 |
-| `ekran_sinks::select::tests::falls_back_to_browser` | cihaz yoksa tarayıcı modu | T-M3-05 |
-
-### A2. Entegrasyon testleri
-
-| Test adı | Akış | AC |
-|---|---|---|
-| `it_test_source_to_ws` | lavfi → fMP4 → WS → istemci ilk kareyi alır | T-M1-01 |
-| `it_twenty_clients_same_stream` | 20 istemci, tek üretici | T-M1-07 |
-| `it_hls_playlist_updates` | HLS playlist'e yeni segment eklenir | T-M4-03 |
-| `it_token_blocks_unauthorised` | token'sız istek reddedilir | T-M1-08 |
-| `it_http_api_contract` | `/api/info`, `/api/stats` şema doğru | T-M1-08 |
-
-### A3. Fixtures (test verileri)
-
-| Fixture | Açıklama | Nerede |
-|---|---|---|
-| `sample_frag.mp4` | 3 saniyelik geçerli fMP4 (moov+2 fragment) | `crates/ekran-transport/tests/fixtures/` |
-| `fake_pactl.sh` | `pactl` davranışını taklit eden betik (sink değişimi senaryosu) | `crates/ekran-audio/tests/fixtures/` |
-| `fake_cast_server.rs` | yerel TLS + protobuf Cast sunucusu | `crates/ekran-sinks/tests/fixtures/` |
-| `fake_ssdp_server.rs` | SSDP M-SEARCH yanıtlayıcı | `crates/ekran-sinks/tests/fixtures/` |
-| `quality_ladder.json` | PLAN §11 tablosunun makine-okunur hâli | `crates/ekran-core/tests/fixtures/` |
-
-> `quality_ladder.json` ile `ekran-core` testi, PLAN.md §11 tablosunu **otomatik karşılaştırır**:
-> doküman ile kod birbirinden ayrışırsa CI kırılır.
-
-### A4. CI
-
-```
-fmt (cargo fmt --check) → clippy (-D warnings) → test (workspace) →
-snapshot testleri → musl çapraz derleme → .deb + flatpak paketleme
-```
-Ortam: `stable` + `1.23` Rust, Ubuntu 24.04 runner. Ağ gerektiren testler `--ignored` olarak
-işaretlenir, CI'da çalıştırılmaz.
+Two verification layers: **A. Automated tests** (run in CI without external networks) and
+**B. Physical TV verification** (manual checklist on real LAN hardware).
 
 ---
 
-## B. Gerçek cihaz doğrulaması (Zorin OS 18.1 + gerçek TV)
+## A. Automated tests
 
-| # | Kontrol | Beklenen | Sonuç |
+### A1. Unit tests (by crate)
+
+| Test | Scope | AC |
+|---|---|---|
+| `screencast_core::quality::tests::quality_roundtrip` | `480p`/`540p`/`720p`/`1080p`/`1440p` resolution & bitrate ladder | PLAN §11 |
+| `screencast_core::quality::tests::gop_shrinks_with_quality` | Shorter GOP for higher resolution tiers | AC-1 |
+| `screencast_core::quality::tests::quality_parse_rejects_unknown` | Rejects unknown presets cleanly | §9 |
+| `screencast_core::i18n::tests::defaults_to_english_and_respects_precedence` | `--lang` > `SCREENCAST_LANG` > `config.toml` > `LANG` > `en` | D-010 |
+| `screencast_core::config::tests::schema_version_mismatch` | Clear hint on schema mismatch | T-M0-05 |
+| `screencast_encode::plan::tests::snapshot_1080p` / `snapshot_480p` | Deterministic `ffmpeg` arguments matching PLAN §11 | T-M1-04 |
+| `screencast_encode::codec::probe::tests::probe_rejects_broken_nvenc_false_positive_and_falls_back_to_vaapi` | 1-frame active codec verification (NVENC -> VAAPI -> libx264) | T-M1-03 |
+| `screencast_encode::adaptive::tests::hysteresis_no_flap` | +20% / -15% threshold stability | T-M2-05 |
+| `screencast_capture::x11::probe::tests::x11_detect_codec_skips_broken_nvenc_and_selects_vaapi_or_x264` | X11 codec fallback | T-M1-02 |
+| `screencast_capture::wayland::gst_probe::tests::detects_vah264enc_and_aac_fallback_with_mock_gst_bins` | Wayland GStreamer encoder selection | T-M6-02 |
+| `screencast_transport::mp4::tests::init_segment_detected` / `fragment_detected` | `ftyp+moov` vs `moof+mdat` box parsing | T-M1-06 |
+| `screencast_transport::hub::tests::slow_client_does_not_block` | Slow consumer drop protection | T-M1-07 |
+| `screencast_transport::http::stream::tests::token_required_and_http_routes_work` | RFC 6455 upgrade + 401 guard | T-M1-05 |
+| `screencast_audio::watcher::tests::sink_change_triggers_rebind` | Mock `pactl` sink change recovery | AC-3 |
+| `screencast_audio::source::tests::resolves_default_monitor` | Default sink monitor resolution (incl. `LC_ALL=C` + i18n fallback) | T-M2-01 |
+| `screencast_sinks::mdns::tests::parses_googlecast_txt` / `parses_ms_mice_display_service` | mDNS TXT & packet accumulation | T-M3-01 |
+| `screencast_sinks::ssdp::tests::resolve_handles_chunked_keepalive_and_preserves_control_url_against_overwrite` | SSDP & dynamic UPnP control URL | T-M3-02 |
+| `screencast_sinks::cast::tests::mock_server_handshake` / `background_heartbeat_replies_to_pings_and_tracks_liveness` | Mock TLS Cast protobuf session | T-M4-02 |
+| `screencast_sinks::dlna::tests::dlna_falls_back_from_hls_to_progressive_mp4` | DLNA HLS -> MP4 fallback | T-M5-02 |
+| `screencast_sinks::wireless::tests::dfs_channel_forces_p2p_client_intent_zero` | DFS safety & `nm_wifi_p2p_dbus_add_activate_and_deactivate_mock` | T-M10-07 |
+| `screencast_sinks::mice::tests::source_ready_matches_ms_mice_wire_spec` / `source_ready_roundtrip_utf16le_unicode` | MS-MICE wire framing & UTF-16LE | T-M10-08 |
+| `screencast_sinks::wfd::tests::rtsp_m1_to_m7_and_rtp_ts_stream` | WFD RTSP M1..M7 + RTP PT=33 | T-M10-03 |
+| `screencast_sinks::miracast::tests::mice_mock_end_to_end` | MS-MICE -> WFD RTSP -> RTP pipeline | T-M10-03 |
+| `screencast_ui::tui::tests::renders_at_80x24_and_compact_bilingual` | TUI 80x24 + compact layout in `en` & `tr` | T-M3-04 |
+
+### A2. Integration & AI-hygiene gates
+
+| Test suite | Coverage | AC |
+|---|---|---|
+| `it_test_source_to_ws` | `TestSource` -> fMP4 -> WebSocket -> client receives init + fragments | T-M1-01 |
+| `screencast_transport::http::stream::tests::twenty_ws_clients_receive_init_and_fragment` | 20 concurrent WebSocket clients | T-M1-07 |
+| `it_hls_playlist_updates` | Live HLS segment updates | T-M4-03 |
+| `it_http_api_contract` | HTTP/WS security (401 guard) & JSON schemas | T-M1-08 |
+| `i18n_cli` | English-first CLI help, `--lang`, `SCREENCAST_LANG`, `config.toml`, `selftest` | D-010 |
+| `ai_hygiene` | Hard `<= 350` non-test lines, zero Turkish chars / `_tr` outside `tr` catalogs & Unicode vectors, strict 1-way crate DAG, legacy cleanup | D-011 |
+
+### A3. Fixtures
+
+| Fixture | Purpose | Location |
+|---|---|---|
+| `sample_frag.mp4` | 3-second valid fragmented MP4 (`moov` + fragments) | `crates/screencast-transport/tests/fixtures/` |
+| `fake_pactl.sh` | Mock `pactl` simulating runtime sink switch | `crates/screencast-audio/tests/fixtures/` |
+| `quality_ladder.json` | Machine-readable copy of `PLAN` §11 table | `crates/screencast-core/tests/fixtures/` |
+
+### A4. CI pipeline
+
+`cargo fmt --all -- --check` -> `cargo clippy --workspace -- -D warnings` -> `cargo test --workspace` ->
+`python3 -m py_compile assets/gui/*.py` -> `musl` static build & `.deb`/Flatpak checks.
+
+---
+
+## B. Real device verification checklist (Linux host + physical TV)
+
+| # | Check | Expected | Result |
 |---|---|---|---|
-| A1 | `ekran doctor` | Wayland + portal + NVENC tespit edilir | ➖ |
-| A2 | `ekran doctor --discover` | TV listede (protokol türüyle) | ➖ |
-| A3 | `ekran selftest` | "SELFTEST OK" | ➖ |
-| B1 | Wayland portal ekranı seç → yayın | Akıcı görüntü, siyah ekran YOK | ➖ |
-| B2 | İkinci monitör seçimi | Doğru ekran geliyor | ➖ |
-| B3 | Xorg oturumunda (`zorin-xorg.desktop`) | Çalışıyor | ➖ |
-| B4 | Ekran kilitliyken | Son kare donuyor (çökme yok) | ➖ |
-| C1 | Spotify/Web çalarken ses TV'de | Ses duyuluyor | ➖ |
-| C2 | Hoparlör → Bluetooth kulaklık | ≤ 3 sn'de ses geri geliyor (AC-3) | ➖ |
-| C3 | Sessizlik → sonra müzik | Takılma yok, ses başlıyor | ➖ |
-| C4 | `ekran doctor --audio-switch` | Otomatik test geçiyor | ➖ |
-| D1 | `--quality 480p` | 854×480, akıcı | ➖ |
-| D2 | `--quality 540p` | 960×540 | ➖ |
-| D3 | `--quality 720p` | 1280×720 | ➖ |
-| D4 | `--quality 1080p` | 1920×1080, metinler net | ➖ |
-| D5 | `--quality 1440p` | 2560×1440 | ➖ |
-| D6 | `--quality auto` | Zayıf Wi-Fi'de merdiven düşüyor, takılma yok | ➖ |
-| E1 | **Cast**: TV'nin yerleşik oynatıcısında görüntü | Görüntü + ses, TV'de uygulama yok (AC-6/AC-7) | ➖ |
-| E2 | **DLNA**: TV'nin medya oynatıcısında görüntü | Görüntü (canlı desteklenmiyorsa ➖ + uyarı) | ➖ |
-| E3 | Browser: TV tarayıcısında `http://<ip>:7700` | MSE ile akış | ➖ |
-| E4 | Hiçbir sink yokken | Anlaşılır hata + URL/QR önerisi | ➖ |
-| F1 | TV'den fare hareketi | İmleç PC'de hareket ediyor | ➖ |
-| F2 | TV'den tıklama | Tıklanıyor | ➖ |
-| F3 | TV'den klavye | Türkçe karakterler doğru | ➖ |
-| F4 | Wayland'da kumanda (portal) | Root'suz çalışıyor | ➖ |
-| F5 | TV kumandasıyla ok/Enter/Geri | Menüler gezinilebiliyor | ➖ |
-| G1 | `ekran doctor --bench` (1080p, Wi-Fi) | p50 ≤ 400 ms, p95 ≤ 700 ms (AC-1) | ➖ |
-| G2 | `ekran doctor --idle` | CPU < %8, bant < 300 kb/s (AC-2) | ➖ |
-| G3 | 30 dk sustained yayın | Bellek sızıntısı yok, fan sakin | ➖ |
-| G4 | 3 TV + 2 tarayıcı aynı anda | Hepsi akıcı | ➖ |
-| H1 | Arayüz DESIGN.md ile uyum | Token'lar, durumlar, ölçüler aynı (AC-10) | ➖ |
-| H2 | 720p TV'de okunabilirlik | Gövde ≥ 16 px, hedef ≥ 48 px | ➖ |
-| H3 | `prefers-reduced-motion` | Geçişler kapanır | ➖ |
+| A1 | `screencast doctor` | Session, displays, LAN IP, encoder detected | pending |
+| A2 | `screencast doctor --discover` | TV listed with protocol kind | pending |
+| A3 | `screencast selftest` | `SELFTEST OK` | pending |
+| B1 | Wayland portal display share | Smooth live stream, no black screen | pending |
+| B2 | Secondary monitor selection | Correct display streamed | pending |
+| B3 | Xorg session (`x11grab`) | Streams cleanly | pending |
+| C1 | System audio routed to TV | Audible synchronized audio | pending |
+| C2 | Output device switch (speaker -> Bluetooth) | Recovers within <= 3 s (AC-3) | pending |
+| D1-D6 | `--quality 480p..1440p` and `auto` | Accurate tiers & smooth adaptation | pending |
+| E1 | **Cast**: native TV Media Receiver | Video + audio with zero TV app (AC-6/AC-7) | pending |
+| E2 | **DLNA**: native TV DMR playback | Video playback or progressive MP4 fallback | pending |
+| E3 | **Browser**: `http://<ip>:7700` | Low-latency MSE live playback | pending |
+| E5 | **MS-MICE**: `_display._tcp` on LAN/Ethernet | Streams without enabling P2P radio | pending |
+| E6 | **WDI/MCC + DFS P2P Client** | `go_intent=0` on DFS STA keeps Wi-Fi internet alive | pending |
+| F1-F5 | Remote mouse/click/scroll/keyboard & TV D-pad | Works over X11 (`xdotool`) and Wayland (`RemoteDesktop` portal) | pending |
+| G1-G4 | Latency benchmark (`--bench`), idle (`--idle`), 30-min soak | `p50 <= 400 ms`, idle < 300 kb/s, zero leaks | pending |
+| H1-H3 | Design tokens, TV legibility, reduced motion | Matches `docs/DESIGN.md` | pending |

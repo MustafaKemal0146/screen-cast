@@ -1,0 +1,25 @@
+app-id: io.github.screencast.Screencast
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: screencast
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=x11
+  - --socket=pulseaudio
+  - --talk-name=org.freedesktop.portal.Desktop
+modules:
+  - name: screencast
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+    build-commands:
+      - cargo build --release --offline -p screencast-cli
+      - install -Dm755 target/release/screencast /app/bin/screencast
+    sources:
+      - type: dir
+        path: ../..

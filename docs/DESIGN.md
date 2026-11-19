@@ -1,178 +1,156 @@
-# ekran — Arayüz Tasarım Sistemi (v1.0)
+# screencast — UI Design System (v2.0)
 
-> Bu dosya **normatiftir**: UI'daki her renk, ölçü, hareket ve bileşen burada tanımlıdır.
-> Uygulayıcı (veya AI) yeni bir arayüz öğesi eklerken **önce bu dosyaya** ekler.
-> TV tarafı web (HTML/CSS/JS), Linux tarafı terminal (TUI) — ikisi de aynı "dilbilgisi"ni paylaşır.
+> **Normative UI specification.** Every color, spacing, motion token, and component state lives here.
+> Any new UI token must be added to this document before modifying CSS or Python code.
+> Both the TV web player (`assets/player/`) and Linux TUI/GTK3 GUI (`assets/gui/`, `screencast-ui`) share this system.
 
 ---
 
-## 1. Tasarım ilkeleri
+## 1. Design principles
 
-1. **Tek ekran, tek fikir.** Oynatıcıda video her şeydir; kontroller katman, panel değil.
-2. **Sessiz zemin, güçlü odak.** Siyah zemin, tek renk vurgusu (mavi), gri metin. Renk sadece
-   "şu anda ne oluyor" bilgisini taşır.
-3. **Hareket amaçlı.** 120–220 ms, `ease-out`; dekoratif animasyon yok. `prefers-reduced-motion`
-   desteklenir (TV'de dikkat dağıtıcı olmamalı).
-4. **10 feet kuralı.** TV'de 2.5–4 m mesafeden okunacak: gövde metni ≥ 22 px (1080p ölçeğinde
-   ≥ 32 px), dokunma/odak hedefi ≥ 48 px, kontrast ≥ 4.5:1.
-5. **Kumanda önceliği.** Her etkileşim TV kumandasıyla yapılabilmeli (ok/Enter/Geri). Fare
-   bir bonus, asıl yol değil.
-6. **Sessiz mod.** Yayın sırasında klavye/fare girdisi konsola değil TV'ye gider; TV'de yazı
-   yazmak isteniyorsa kumanda modu açılır.
+1. **One screen, one focus.** Video fills the player stage; controls live in lightweight overlays, never permanent sidebars.
+2. **Quiet canvas, focused accent.** Pure black `#000000` background, subtle grey hierarchy, single electric-blue accent `#0A84FF`.
+3. **Purposeful motion.** 120-250 ms smooth easing; zero decorative animation; full `prefers-reduced-motion` support.
+4. **10-foot legibility.** Readable on TVs from 2.5-4 m: body text >= 22 px (1080p scale >= 32 px), hit targets >= 48 px, contrast >= 4.5:1.
+5. **Remote-first interaction.** Every control works via D-pad arrows + Enter/Back as well as mouse/touch.
+6. **Silent keyboard capture.** Unless Remote mode (`C`) is active, playback shortcuts stay local to the player.
+7. **English-first with live `en`/`tr` switching.** Both the Web Player menu (`Language`) and GTK3 HeaderBar (`EN`/`TR`) switch languages seamlessly at runtime.
 
-## 2. Renk paleti (dark-first)
+## 2. Color palette (dark-first)
 
-| Token | Değer | Kullanım |
+| Token | Value | Purpose |
 |---|---|---|
-| `--canvas` | `#000000` | Tam ekran video arka planı |
-| `--surface-1` | `rgba(28,28,30,0.72)` | Kontrol paneli (buzlu cam) |
-| `--surface-2` | `rgba(44,44,46,0.92)` | İkincil panel / menü |
-| `--hairline` | `rgba(255,255,255,0.12)` | Ayırıcı çizgi |
-| `--text-primary` | `#F5F5F7` | Başlık, aktif öğe |
-| `--text-secondary` | `rgba(245,245,247,0.62)` |ikincil metin, rozet |
-| `--text-tertiary` | `rgba(245,245,247,0.38)` | Zaman damgası, pasif |
-| `--accent` | `#0A84FF` | Odak halkası, canlı göstergesi, birincil eylem |
-| `--accent-dim` | `rgba(10,132,255,0.18)` | Odak dolgusu |
-| `--live` | `#FF3B30` | "CANLI" noktası (nur kayıp cihazda kırmızı değil) |
-| `--warn` | `#FF9F0A` | Buffer uyarısı, düşük bant uyarısı |
-| `--ok` | `#30D158` | Bağlandı, ölçüm tamam |
+| `--canvas` | `#000000` | Fullscreen player background & desktop GUI window |
+| `--surface-1` | `rgba(28,28,30,0.72)` | Frosted control dock & pills |
+| `--surface-2` | `rgba(44,44,46,0.92)` | Secondary popover menu |
+| `--hairline` | `rgba(255,255,255,0.12)` | Subtle 1 px border divider |
+| `--text-primary` | `#F5F5F7` | Primary labels & headings |
+| `--text-secondary` | `rgba(245,245,247,0.62)` | Secondary captions & badges |
+| `--text-tertiary` | `rgba(245,245,247,0.38)` | Section eyebrows & passive text |
+| `--accent` | `#0A84FF` | Focus rings, active buttons, primary actions |
+| `--accent-dim` | `rgba(10,132,255,0.18)` | Hover/focus surface fill |
+| `--live` | `#FF3B30` | Live indicator dot |
+| `--warn` | `#FF9F0A` | Buffering / elevated latency warning |
+| `--ok` | `#30D158` | Healthy / low-latency badge |
 
-**Buzlu cam (frosted glass) reçetesi:** `backdrop-filter: blur(40px) saturate(180%)`,
-arka plan `--surface-1`, 1 px `--hairline` kenarlık, üstte `inset 0 1px 0 rgba(255,255,255,0.06)`
-highlight, gölge `0 12px 40px rgba(0,0,0,0.55)`.
+**Frosted glass recipe:** `backdrop-filter: blur(40px) saturate(180%)`, `--surface-1` background, 1 px `--hairline` border, `inset 0 1px 0 rgba(255,255,255,0.06)` top highlight, `0 12px 40px rgba(0,0,0,0.55)` shadow.
+**Color blindness:** Status badges always pair color with explicit icons and text labels.
 
-**Renk körlüğü:** Canlı/uyarı durumları asla yalnız renkle anlatılmaz — her zaman ikon + metin eşlikler.
+## 3. Typography
 
-## 3. Tipografi
-
-| Rol | Boyut (1080p referans) | Ağırlık | Satır aralığı | Not |
+| Role | Size (1080p ref) | Weight | Line height | Notes |
 |---|---|---|---|---|
-| Ekran başlığı | 34 px | 600 | 1.2 | `SF Pro Display` yığını |
-| Gövde | 22 px | 400 | 1.45 | |
-| Rozet / durum | 19 px | 500 | 1.2 | `font-variant-numeric: tabular-nums` |
-| İkincil | 17 px | 400 | 1.4 | açıklama metni |
+| Overlay title | 34 px | 600 | 1.2 | `SF Pro Display` stack |
+| Body | 22 px | 400 | 1.45 | `clamp(16px, 1.45vw, 24px)` |
+| Badge / telemetry | 19 px | 500 | 1.2 | `font-variant-numeric: tabular-nums` |
+| Secondary | 17 px | 400 | 1.4 | Helper copy |
 
-**Font yığını:** `-apple-system, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", Inter,
-system-ui, "Helvetica Neue", Arial, sans-serif`. TV'de font yoksa `system-ui` kullanılır; ölçüler
-`clamp()` ile 720p→4K arası ölçeklenir (720p'de gövde 16 px'e iner).
+Font stack: `-apple-system, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", Inter, system-ui, "Helvetica Neue", Arial, sans-serif`.
 
-## 4. Ölçü token'ları
+## 4. Spacing & radius tokens
 
-| Token | Değer | Kullanım |
+| Token | Value | Use |
 |---|---|---|
-| `--s-1` | 4 px | İkon iç boşluk |
-| `--s-2` | 8 px | Rozet iç boşluk |
-| `--s-3` | 12 px | Buton iç boşluk (yatay) |
-| `--s-4` | 16 px | Panel iç boşluk |
-| `--s-5` | 24 px | Kart iç boşluk |
-| `--s-6` | 32 px | Bölüm arası |
-| `--radius-s` | 10 px | Rozet, küçük buton |
-| `--radius-m` | 16 px | Panel, kart |
-| `--radius-l` | 22 px | Buton (pill) |
+| `--s-1` | 4 px | Tight icon gap |
+| `--s-2` | 8 px | Badge gap |
+| `--s-3` | 12 px | Button horizontal padding |
+| `--s-4` | 16 px | Panel padding |
+| `--s-5` | 24 px | Card/edge margin |
+| `--s-6` | 32 px | Section spacing |
+| `--radius-s` | 10 px | Small controls |
+| `--radius-m` | 16 px | Menus, cards, toasts |
+| `--radius-l` | 22 px | Pill bars & action buttons |
 
-## 5. Hareket
+## 5. Motion
 
-| Olay | Süre | Easing |
+| Interaction | Duration | Easing |
 |---|---|---|
-| Panel açılış/kapanış | 200 ms | `cubic-bezier(0.32, 0.72, 0, 1)` |
-| Kontrol çubuğu gizlenmesi | 250 ms | aynı |
-| Odak halkası | 120 ms | `ease-out` |
-| Durum rozeti değişimi | 160 ms | `ease-in-out` |
-| İmleç takibi (kumanda modu) | 0 ms (anında) | — |
+| Menu open/close | 200 ms | `cubic-bezier(0.32, 0.72, 0, 1)` |
+| Control bar auto-hide | 250 ms | `--ease-panel` |
+| Focus ring | 120 ms | `ease-out` |
+| Toast / badge fade | 160 ms | `ease-in-out` |
+| Remote cursor tracking | 0 ms (instant) | none |
 
-`@media (prefers-reduced-motion: reduce)` → tüm geçişler 0 ms, imleç takibi yine anında.
+`@media (prefers-reduced-motion: reduce)` collapses transitions and animations to zero.
 
-## 6. Oynatıcı ekran anatomisi
-
-Katmanlar (alttan üste):
+## 6. Web player anatomy
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ ① Video sahnesi (letterbox, radius 0, siyah)                │
+│ 1. Video stage (object-fit: contain, radius 0, pure black)   │
 │                                                              │
-│      ┌──────────────────────────────┐                        │
-│      │        <video>               │                        │
-│      └──────────────────────────────┘                        │
+│ 2. Remote cursor overlay (24 px white ring + 8 px halo)      │
 │                                                              │
-│ ② Kumanda imleci overlay (yarı saydam beyaz halka + halo)    │
+│ 3. Top bar (auto-hide): device pill · LIVE · quality · ms    │
 │                                                              │
-│ ③ Üst bar (auto-hide): ekran adı · kalite · gecikme rozeti  │
+│ 4. Bottom dock (auto-hide, frosted glass)                    │
+│    ▶/⏸   🔇/🔊   ⛶   🖱 Remote   ⋯ (TV Mode, Language, Quality)│
 │                                                              │
-│ ④ Alt kontrol paneli (auto-hide, buzlu cam)                  │
-│    ▶/⏸   🔊   ⛶   🖱kumanda   ⋯(menü: kalite, ses, kayıt)  │
-│                                                              │
-│ ⑤ Toast / durum bildirimi (sağ üst, 3 sn)                  │
+│ 5. Toast notification (top-right, 3 s)                       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 6.1 Kontrol paneli davranışı
-- Fare hareketi, tıklama veya kumanda tuşu → panel **görünür**; 2.5 sn hareketsizlik → **gizlenir**.
-- Video üzerinde çift tıkla → tam ekran ↔ pencere.
-- `Esc` / kumanda "Geri" → tam ekrandan çıkar (panel açık kalır).
-- Panel gizliyken video **tam boy** (kenar boşluğu yok) — Apple TV hissi.
+### 6.1 Auto-hide behavior
+- Pointer move, click, or key press reveals top/bottom bars; 2.5 s idle hides both (unless paused or menu open).
+- Double-clicking video toggles fullscreen (when Remote mode is off).
 
-### 6.2 Durumlar ve görsel karşılıkları
+### 6.2 Player states
 
-| Durum | Ekranda görünen | Süre |
-|---|---|---|
-| Bağlanıyor | Siyah ekran + ortada ince spinner (2 px çizgi, sonsuz döngü) + "Bağlanılıyor…" | — |
-| Canlı | Sağ üstte `● CANLI` (kırmızı nokta, 1.2 sn nabız) + sol üstte cihaz adı | sürekli |
-| Buffering | Video üstünde hafif karartma + "Ağ yavaş" uyarısı (yalnız > 1 sn) | olay bazlı |
-| Duraklatıldı | Ortada büyük ▶ rozeti, kumanda ipucu | kalıcı |
-| İzin gerekli | "Ekran paylaşım izni verilmedi" + "Tekrar dene" butonu | kalıcı |
-| Hata (sink öldü) | "Yayın kesildi" + "Yeniden bağlan" | kalıcı |
-| Çok düşük bant | Sağ üstte `-- 480p` uyarısı (otomatik kalite düştüyse) | 4 sn |
+| State | Visual presentation |
+|---|---|
+| Connecting | Solid black overlay + spinner + `"Connecting..."` |
+| Live | Overlay hidden; top-right `● LIVE` pulse + device/quality/latency pills |
+| Buffering | Translucent dim overlay + spinner + `"Slow network"` / `"Buffering stream..."` |
+| Paused | Overlay + `"Paused"` + `"Resume"` action button |
+| Permission denied | Solid overlay + `"Screen share permission denied"` + `"Retry"` |
+| Error | Solid overlay + `"Stream disconnected"` + `"Reconnect"` |
 
-### 6.3 Kumanda (uzaktan kontrol) modu
-- TV'den gelen işaretçi ekranda **yumuşak beyaz halka** (24 px) + 8 px halo olarak görünür.
-- Sol tık → halka koyulaşır (basıldı), sağ tık → kırmızımsı ton.
-- TV kumandası ok tuşları: halka 12 px adım atar, Enter = tıkla, Geri = sağ tık (uzun basış).
-- `C` ile kumanda modu açılır/kapanır; kapalıyken kumanda TV'nin kendi menüsünde çalışır.
+### 6.3 Remote control overlay
+- 24 px circular white cursor (`--live` border on right-click press).
+- `C` toggles Remote mode; arrow keys nudge cursor 12 px, `Enter` left-clicks.
 
-### 6.4 Rozetler (sağ üst)
-- **Gecikme**: `240 ms` — 400 ms üstüyse sarı, 700 ms üstüyse kırmızı.
-- **Kalite**: `1080p` — `auto` moddaysa `1080p (auto)` ve bağlantı zayıfladığında `↓ 720p`.
-- **İstemci**: ev sahibi tarafında gösterilir, TV'de değil.
+### 6.4 Telemetry badges
+- Latency: `<= 400 ms` green (`--ok`), `401-700 ms` amber (`--warn`), `> 700 ms` red (`--live`).
+- Quality: shows current tier plus `↑`/`↓` toast when adaptive controller switches resolution.
 
-## 7. TUI (Linux tarafı, ratatui)
+## 7. Terminal TUI (`screencast-ui`)
 
-Düzen (80×24 varsayılan):
+Default 80x24 layout (collapses cleanly below 80x24):
 
 ```
-┌ ekran 0.1.0 ─────────────────────────────────────────────┐
-│  cihazlar (5)                    yayın: 1080p · 6.2 Mb/s │
-│  ▸ LG OLED (Chromecast)  10.9.46.60:8009    ● uygun      │
-│    Samsung Crystal (DLNA) 10.9.46.61:8200    ● uygun      │
-│    Fire TV (Miracast)     10.9.46.62:7231    ○ destek yok │
-│    Tarayıcı modu (QR)      http://10.9.46.60:7700         │
-├─────────────────────────────────────────────────────────┤
-│  istatistik: 29 fps · 2 istemci · gecikme 240 ms · cpu %6 │
-├─────────────────────────────────────────────────────────┤
-│ ↑↓ seç  ⏎ paylaş  p duraklat  m ses  q çık               │
-└─────────────────────────────────────────────────────────┘
+┌ screencast 0.1.0 | stream: 1080p · 6.2 Mb/s | Ready ────────┐
+│ devices (4)                                                 │
+│ ▸ LG OLED (10.9.46.60)      10.9.46.60:8009       ● ready   │
+│   Samsung TV (10.9.46.61)   10.9.46.61:7250       ● MS-MICE │
+│   Apple TV (10.9.46.62)     10.9.46.62:7000       ● unsupp. │
+│   Browser mode (MSE)        http://10.9.46.50:7700          │
+├─────────────────────────────────────────────────────────────┤
+│ stats: 30 fps · 1 clients · latency 240 ms · audio on       │
+├─────────────────────────────────────────────────────────────┤
+│ ↑↓ select  ⏎ share  p pause  m mute  r scan  s snap  q quit │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Renkler: siyah zemin, mavi seçim satırı, yeşil "uygun", sarı "beklemede", gri soluk satırlar.
-80×24'ten küçükse cihaz listesi 3 satıra kısalır, istatistik satırı korunur.
-Kumanda modu açıkken TUI girdi almayı bırakır (girdi TV'ye akar).
-
-## 8. Erişilebilirlik
-
-- Tüm metinler ≥ 4.5:1 kontrast; `--text-tertiary` yalnızca dekoratif.
-- Odak halkası her odaklanabilir öğede görünür (2 px `--accent` + 2 px dış halo).
-- Sadece renk kullanan durum yok (her rozet metin + ikon).
-- `prefers-reduced-motion` desteklenir.
-- TV'de 10-feet arayüz: min. hedef 48 px, min. gövde 16 px (720p).
-
-## 9. Varlık dosyaları (repo içinde)
+## 8. Embedded asset modules (`<= 350` lines each)
 
 ```
 assets/player/
-├── index.html      # tek dosya iskelet: <video> + katmanlar
-├── app.js          # MSE oynatıcı, WS istemcisi, kumanda modu, rozetler
-├── style.css       # token'lar + bileşenler (bölüm 2-6)
-└── hls.min.js      # HLS yedeği (yalnız HLS sink'i için; MSE varsa gerekmez)
-```
+├── index.html      # Minimal stage skeleton + ordered script tags
+├── style.css       # Design tokens, core layout, frosted bars, reduced-motion
+├── overlays.css    # Menu popover, state overlays, toast, TV-mode scaling
+├── i18n.js         # English catalog + language switcher & DOM updater
+├── i18n_tr.js      # Dedicated Turkish translation catalog
+├── mse.js          # MediaSource/SourceBuffer queue & live-edge chaser
+├── controls.js     # Mouse/keyboard/remote cursor & TV-mode handlers
+├── app.js          # WebSocket lifecycle, /api/info, telemetry loop
+└── hls.min.js      # Self-contained HLS fallback shim (`ScreencastHlsFallback`)
 
-Gereksinim: `style.css` içindeki token'lar bölüm 2-4 ile **birebir** eşleşmeli; yeni renk
-eklenirse önce bu doküman güncellenir.
+assets/gui/
+├── screencast_gui.py          # Main GTK3 ScreencastWindow
+├── screencast_gui_css.py      # CSS tokens matching §2
+├── screencast_gui_i18n.py     # English catalog, language detector, parser tokens
+├── screencast_gui_i18n_tr.py  # Dedicated Turkish GUI translation catalog
+├── screencast_gui_helpers.py  # Binary lookup, device grouping, stdout parsers
+├── screencast_gui_widgets.py  # Reusable GTK3 card/header/hero/settings builders
+└── screencast_gui_runner.py   # Subprocess worker threads
+```
