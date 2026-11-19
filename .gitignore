@@ -1,0 +1,18 @@
+# Build & packaging outputs
+/target/
+/dist/
+*.deb
+*.zip
+*.log
+
+# Local duplicate/scratch extraction
+/ekran-repo/
+/*.mp4
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OS / editor artifacts
+.DS_Store
+*.swp

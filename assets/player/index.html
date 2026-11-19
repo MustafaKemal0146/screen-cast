@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ekran — Canlı Yayın</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main id="stage" aria-label="ekran canlı yayın oynatıcısı">
+    <!-- ① Video sahnesi -->
+    <video id="player-video" autoplay playsinline muted></video>
+
+    <!-- ② Kumanda imleci overlay -->
+    <div id="cursor-overlay" aria-hidden="true"></div>
+
+    <!-- ③ Üst bar -->
+    <header id="top-bar">
+      <div class="pill frosted" id="device-pill">
+        <span id="device-name">ekran</span>
+      </div>
+      <div class="badges-right">
+        <div class="pill frosted" id="live-badge">
+          <span class="live-dot" id="live-dot"></span>
+          <span id="live-text">BAĞLANILIYOR</span>
+        </div>
+        <div class="pill frosted" id="quality-badge">auto</div>
+        <div class="pill frosted" id="latency-badge">-- ms</div>
+      </div>
+    </header>
+
+    <!-- Durum katmanı -->
+    <section id="state-overlay" class="visible solid" role="status" aria-live="polite">
+      <div class="spinner" id="state-spinner"></div>
+      <h1 class="state-title" id="state-title">Bağlanılıyor…</h1>
+      <p class="state-desc" id="state-desc">Masaüstü akışı hazırlanıyor.</p>
+      <button class="primary-action" id="state-action" hidden>Yeniden bağlan</button>
+    </section>
+
+    <!-- ④ Alt kontrol paneli -->
+    <nav id="bottom-bar" class="frosted" aria-label="Oynatıcı kontrolleri">
+      <button class="ctrl-btn" id="btn-play" title="Oynat / Duraklat (Boşluk)" aria-label="Oynat veya duraklat">⏸</button>
+      <button class="ctrl-btn" id="btn-mute" title="Sesi aç/kapat (M)" aria-label="Sesi aç veya kapat">🔇</button>
+      <button class="ctrl-btn" id="btn-fullscreen" title="Tam ekran (F)" aria-label="Tam ekran">⛶</button>
+      <button class="ctrl-btn" id="btn-control" title="Kumanda modu (C)" aria-label="Kumanda modu">🖱 Kumanda</button>
+      <button class="ctrl-btn" id="btn-more" title="Menü" aria-label="Diğer seçenekler">⋯</button>
+    </nav>
+
+    <!-- İkincil menü -->
+    <div id="more-menu" role="dialog" aria-label="Yayın seçenekleri">
+      <div class="menu-row">
+        <label for="tv-mode-toggle">TV Modu (büyük arayüz)</label>
+        <button class="ctrl-btn" id="tv-mode-toggle">Kapalı</button>
+      </div>
+      <div class="menu-row">
+        <label for="quality-info">Aktif Kalite</label>
+        <span id="quality-info" class="menu-select" style="display:flex;align-items:center;">auto</span>
+      </div>
+      <div class="menu-row">
+        <span>Kısayollar</span>
+        <span style="color:var(--text-secondary);font-size:0.85em;">F · M · C · Boşluk</span>
+      </div>
+    </div>
+
+    <!-- ⑤ Toast -->
+    <div id="toast" class="frosted" role="status"></div>
+  </main>
+
+  <script src="/hls.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

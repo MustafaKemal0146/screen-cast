@@ -1,0 +1,7 @@
+[
+  { "label": "480p", "width": 854, "height": 480, "fps": 30, "video_bitrate": "1.5M", "gop_seconds": 1.0, "audio_bitrate": "96k" },
+  { "label": "540p", "width": 960, "height": 540, "fps": 30, "video_bitrate": "2.5M", "gop_seconds": 1.0, "audio_bitrate": "96k" },
+  { "label": "720p", "width": 1280, "height": 720, "fps": 30, "video_bitrate": "4M", "gop_seconds": 0.75, "audio_bitrate": "128k" },
+  { "label": "1080p", "width": 1920, "height": 1080, "fps": 30, "video_bitrate": "8M", "gop_seconds": 0.5, "audio_bitrate": "160k" },
+  { "label": "1440p", "width": 2560, "height": 1440, "fps": 30, "video_bitrate": "14M", "gop_seconds": 0.5, "audio_bitrate": "192k" }
+]

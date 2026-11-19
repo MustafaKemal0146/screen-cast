@@ -1,0 +1,12 @@
+[package]
+name = "ekran-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+crossterm = { workspace = true }
+ekran-core = { workspace = true }
+ratatui = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }

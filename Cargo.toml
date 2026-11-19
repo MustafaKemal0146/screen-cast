@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/ekran-core",
+  "crates/ekran-capture",
+  "crates/ekran-encode",
+  "crates/ekran-audio",
+  "crates/ekran-transport",
+  "crates/ekran-sinks",
+  "crates/ekran-ui",
+  "crates/ekran-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+ekran-core = { path = "crates/ekran-core" }
+ekran-capture = { path = "crates/ekran-capture" }
+ekran-encode = { path = "crates/ekran-encode" }
+ekran-audio = { path = "crates/ekran-audio" }
+ekran-transport = { path = "crates/ekran-transport" }
+ekran-sinks = { path = "crates/ekran-sinks" }
+ekran-ui = { path = "crates/ekran-ui" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+async-trait = "0.1"
+toml = "0.8"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+sha1 = "0.10"
+base64 = "0.22"
+prost = "0.13"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+ratatui = "0.29"
+crossterm = "0.28"
+zbus = { version = "4", default-features = false, features = ["tokio"] }
